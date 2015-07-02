@@ -38,6 +38,7 @@ Streams represent a common promise-based API that may be implemented by classes 
 - `Icicle\Stream\ReadableStreamInterface`: Interface to be used by streams that are only readable.
 - `Icicle\Stream\WritableStreamInterface`: Interface to be used by streams that are only writable.
 - `Icicle\Stream\DuplexStreamInterface`: Interface to be used by streams that are readable and writable. Extends both `Icicle\Stream\ReadableStreamInterface` and `Icicle\Stream\WritableStreamInterface`.
+- `Icicle\Stream\SeekableStreamInterface`: Interface to be used by seekable streams (readable and/or writable).
 
 ## Documentation
 
@@ -52,11 +53,11 @@ Streams represent a common promise-based API that may be implemented by classes 
     - [write()](#write) - Writes data to the stream.
     - [end()](#end) - Writes data to the stream then closes the stream.
     - [isWritable()](#isWritable)
+- [DuplexStreamInterface](#duplexstreaminterface) - Interface for streams that are readable and writable.
 - [SeekableStreamInterface](#seekablestreaminterface) - Interface for seekable streams.
     - [seek()](#seek) - Moves the stream pointer.
     - [tell()](#tell) - Returns the current position of the stream pointer.
     - [getLength()](#getlength) - Returns the length of the stream if known.
-- [DuplexStreamInterface](#duplexstreaminterface) - Interface for streams that are readable and writable.
 - [Stream](#stream) - Buffer that implements `Icicle\Stream\DuplexStreamInterface`.
 - [Sink](#sink) - Memory buffer that implements `Icicle\Stream\DuplexStreamInterface` and `Icicle\Stream\SeekableStreamInterface`.
 
@@ -118,7 +119,7 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the str
 #### pipe()
 
 ```php
-PromiseInterface ReadableStreamInterface::pipe(
+Generator ReadableStreamInterface::pipe(
     WritableStreamInterface $stream,
     bool $end = true,
     int $length = 0,
@@ -127,7 +128,7 @@ PromiseInterface ReadableStreamInterface::pipe(
 )
 ```
 
-Pipes all data read from this stream to the writable stream. If `$length` is not `0`, only `$length` bytes will be piped to the writable stream.  If `$byte` is not `0`, piping will end once `$byte` is encountered in the stream. The returned promise is fulfilled with the number of bytes piped once the writable stream is no longer writable, `$length` bytes have been piped, or `$byte` is encountered in the stream.
+Returns a generator that should be used within a coroutine or used to create a new coroutine. Pipes all data read from this stream to the writable stream. If `$length` is not `0`, only `$length` bytes will be piped to the writable stream.  If `$byte` is not `0`, piping will end once `$byte` is encountered in the stream. The returned promise is fulfilled with the number of bytes piped once the writable stream is no longer writable, `$length` bytes have been piped, or `$byte` is encountered in the stream.
 
 Resolution | Type | Description
 :-: | :-- | :--
