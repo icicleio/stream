@@ -54,7 +54,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(strlen(StreamTest::WRITE_STRING)));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -83,7 +83,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(StreamTest::WRITE_STRING));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -111,7 +111,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(substr(StreamTest::WRITE_STRING, 0, $length)));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -140,7 +140,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(StreamTest::WRITE_STRING));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -167,7 +167,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(StreamTest::WRITE_STRING));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -194,7 +194,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(StreamTest::WRITE_STRING));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -224,7 +224,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(substr(StreamTest::WRITE_STRING, 0, $position + 1)));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -249,7 +249,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(strlen(StreamTest::WRITE_STRING)));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -268,7 +268,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(StreamTest::WRITE_STRING . StreamTest::WRITE_STRING));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
     }
@@ -305,7 +305,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(StreamTest::WRITE_STRING . $string));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -322,7 +322,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(0));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -357,7 +357,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(substr(StreamTest::WRITE_STRING, $position)));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -390,7 +390,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(strlen(StreamTest::WRITE_STRING)));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -412,7 +412,7 @@ class SinkTest extends TestCase
                 . StreamTest::WRITE_STRING
                 . substr(StreamTest::WRITE_STRING, $position)));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -452,7 +452,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(substr(StreamTest::WRITE_STRING, -($position * 2))));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -482,7 +482,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(substr(StreamTest::WRITE_STRING, -$position)));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
@@ -587,7 +587,7 @@ class SinkTest extends TestCase
         $callback->method('__invoke')
             ->with($this->identicalTo(StreamTest::WRITE_STRING));
 
-        $promise->done($callback, $this->createCallback(0));
+        $promise->done($callback);
 
         Loop\run();
 
