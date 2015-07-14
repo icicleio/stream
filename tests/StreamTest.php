@@ -21,7 +21,7 @@ class StreamTest extends TestCase
     const HWM = 16384;
 
     /**
-     * @param int|null $hwm
+     * @param int $hwm
      *
      * @return \Icicle\Stream\Stream[] Same stream instance for readable and writable.
      */
@@ -282,7 +282,7 @@ class StreamTest extends TestCase
         $offset = 5;
         $char = substr(StreamTest::WRITE_STRING, $offset, 1);
 
-        $promise = $readable->read(null, $char);
+        $promise = $readable->read(0, $char);
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -306,7 +306,7 @@ class StreamTest extends TestCase
         $byte = unpack('C', substr(StreamTest::WRITE_STRING, $offset, 1));
         $byte = $byte[1];
 
-        $promise = $readable->read(null, $byte);
+        $promise = $readable->read(0, $byte);
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -330,7 +330,7 @@ class StreamTest extends TestCase
         $length = 3;
         $string = substr(StreamTest::WRITE_STRING, $offset, $length);
 
-        $promise = $readable->read(null, $string);
+        $promise = $readable->read(0, $string);
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -352,7 +352,7 @@ class StreamTest extends TestCase
 
         $char = '~';
 
-        $promise = $readable->read(null, $char);
+        $promise = $readable->read(0, $char);
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -362,7 +362,7 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $promise = $readable->read(null, $char);
+        $promise = $readable->read(0, $char);
 
         Loop\tick();
 
@@ -378,7 +378,7 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $promise = $readable->read(null, '');
+        $promise = $readable->read(0, '');
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -400,7 +400,7 @@ class StreamTest extends TestCase
 
         $this->assertFalse($readable->isReadable());
 
-        $promise = $readable->read(null, "\0");
+        $promise = $readable->read(0, "\0");
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -418,7 +418,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $readable->read(null, "\0");
+        $promise = $readable->read(0, "\0");
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -438,9 +438,9 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise1 = $readable->read(null, "\0");
+        $promise1 = $readable->read(0, "\0");
 
-        $promise2 = $readable->read(null, "\0");
+        $promise2 = $readable->read(0, "\0");
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -482,7 +482,7 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $promise = $readable->read(null, $char);
+        $promise = $readable->read(0, $char);
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -527,7 +527,7 @@ class StreamTest extends TestCase
 
         $char = substr(StreamTest::WRITE_STRING, 0, 1);
 
-        $promise = $readable->read(null, $char);
+        $promise = $readable->read(0, $char);
 
         $promise->cancel($exception);
 
@@ -539,7 +539,7 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $promise = $readable->read(null, $char);
+        $promise = $readable->read(0, $char);
 
         $this->assertTrue($promise->isPending());
 
@@ -561,7 +561,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $readable->read(null, "\n"); // Nothing to read on this stream.
+        $promise = $readable->read(0, "\n"); // Nothing to read on this stream.
 
         Loop\tick();
 
@@ -583,7 +583,7 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $promise = $readable->read(null, $char);
+        $promise = $readable->read(0, $char);
 
         Loop\tick();
 
@@ -615,7 +615,7 @@ class StreamTest extends TestCase
         $offset = 5;
         $char = substr(StreamTest::WRITE_STRING, $offset, 1);
 
-        $promise = $readable->read(null, $char);
+        $promise = $readable->read(0, $char);
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -648,7 +648,7 @@ class StreamTest extends TestCase
         $offset = 5;
         $char = substr(StreamTest::WRITE_STRING, $offset, 1);
 
-        $promise = $readable->read(null, $char);
+        $promise = $readable->read(0, $char);
 
         $promise->cancel($exception);
 
@@ -1388,7 +1388,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $readable->read(null, null, StreamTest::TIMEOUT);
+        $promise = $readable->read(0, null, StreamTest::TIMEOUT);
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1406,7 +1406,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $readable->read(null, "\0", StreamTest::TIMEOUT);
+        $promise = $readable->read(0, "\0", StreamTest::TIMEOUT);
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')

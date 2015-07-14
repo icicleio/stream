@@ -218,7 +218,7 @@ class SinkTest extends TestCase
 
         $this->assertFalse($promise->isPending());
 
-        $promise = $sink->read(null, $byte);
+        $promise = $sink->read(0, $byte);
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
