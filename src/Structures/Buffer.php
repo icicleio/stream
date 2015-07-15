@@ -15,7 +15,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @param string $data
      */
-    public function __construct($data = null)
+    public function __construct($data = '')
     {
         $this->data = (string) $data;
     }
@@ -45,7 +45,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      */
     public function isEmpty()
     {
-        return 0 === strlen($this->data);
+        return '' === $this->data;
     }
     
     /**
@@ -71,11 +71,26 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * @param int $length
      *
-     * @return string|null
+     * @return string
      */
     public function shift($length)
     {
-        return $this->remove($length, 0);
+        $length = (int) $length;
+        if (0 >= $length) {
+            return '';
+        }
+
+        if (strlen($this->data) <= $length) {
+            $buffer = $this->data;
+            $this->data = '';
+            return $buffer;
+        }
+
+        $buffer = (string) substr($this->data, 0, $length);
+
+        $this->data = (string) substr($this->data, $length);
+
+        return $buffer;
     }
     
     /**
@@ -119,9 +134,9 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
             return '';
         }
         
-        $buffer = (string) substr($this->data, $length * -1);
+        $buffer = (string) substr($this->data, -$length);
         
-        $this->data = (string) substr($this->data, 0, $length * -1);
+        $this->data = (string) substr($this->data, 0, -$length);
         
         return $buffer;
     }

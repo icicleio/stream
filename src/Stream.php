@@ -169,17 +169,17 @@ class Stream implements DuplexStreamInterface
     {
         if (null !== $this->byte && false !== ($position = $this->buffer->search($this->byte))) {
             if (0 === $this->length || $position < $this->length) {
-                return $this->buffer->remove($position + 1);
+                return $this->buffer->shift($position + 1);
             }
 
-            return $this->buffer->remove($this->length);
+            return $this->buffer->shift($this->length);
         }
 
         if (0 === $this->length) {
             return $this->buffer->drain();
         }
 
-        return $this->buffer->remove($this->length);
+        return $this->buffer->shift($this->length);
     }
 
     /**
