@@ -127,6 +127,19 @@ class BufferTest extends TestCase
         $this->assertSame(substr(self::INITIAL_STRING, 0, $length), $result);
         $this->assertSame(substr(self::INITIAL_STRING, $length), (string) $this->buffer);
     }
+
+    /**
+     * @depends testShift
+     */
+    public function testShiftWithInvalidLength()
+    {
+        $length = -1;
+
+        $result = $this->buffer->shift($length);
+
+        $this->assertSame('', $result);
+        $this->assertSame(self::INITIAL_STRING, (string) $this->buffer);
+    }
     
     /**
      * @depends testToString
