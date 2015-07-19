@@ -680,7 +680,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnCallback(function () {
@@ -722,7 +722,7 @@ class StreamTest extends TestCase
     {
         list($readable) = $this->createStreams();
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(false));
@@ -777,7 +777,7 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -812,7 +812,7 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -849,7 +849,7 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -922,7 +922,7 @@ class StreamTest extends TestCase
 
         $length = 8;
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -947,7 +947,7 @@ class StreamTest extends TestCase
 
         Loop\tick();
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -989,7 +989,7 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnCallback(function () {
@@ -1026,7 +1026,7 @@ class StreamTest extends TestCase
         $offset = 10;
         $char = substr(StreamTest::WRITE_STRING, $offset, 1);
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -1062,7 +1062,7 @@ class StreamTest extends TestCase
         $byte = unpack('C', substr(StreamTest::WRITE_STRING, $offset, 1));
         $byte = $byte[1];
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -1092,7 +1092,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(false));
@@ -1121,7 +1121,7 @@ class StreamTest extends TestCase
         $length = 3;
         $string = substr(StreamTest::WRITE_STRING, $offset, $length);
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -1183,7 +1183,7 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -1218,7 +1218,7 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -1255,7 +1255,7 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -1294,7 +1294,7 @@ class StreamTest extends TestCase
         $offset = 10;
         $char = substr(StreamTest::WRITE_STRING, $offset, 1);
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -1319,7 +1319,7 @@ class StreamTest extends TestCase
 
         Loop\tick();
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -1356,7 +1356,7 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnCallback(function () {
@@ -1426,7 +1426,7 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -1465,7 +1465,7 @@ class StreamTest extends TestCase
 
         $length = 8;
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -1503,7 +1503,7 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -1542,7 +1542,7 @@ class StreamTest extends TestCase
 
         $length = 8;
 
-        $mock = $this->getMockBuilder(WritableStreamInterface::class)->getMock();
+        $mock = $this->getMock(WritableStreamInterface::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
