@@ -747,15 +747,18 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $stream = $this->prophesize(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStreamInterface::class);
 
-        $stream->isWritable()->willReturn(true);
+        $mock->method('isWritable')
+            ->will($this->returnValue(true));
 
-        $stream->write(StreamTest::WRITE_STRING, 0)->willReturn(Promise\resolve(strlen(StreamTest::WRITE_STRING)));
+        $mock->method('write')
+            ->will($this->returnValue(Promise\resolve(strlen(StreamTest::WRITE_STRING))));
 
-        $stream->end()->shouldBeCalled();
+        $mock->expects($this->once())
+            ->method('end');
 
-        $promise = new Coroutine($readable->pipe($stream->reveal(), true));
+        $promise = new Coroutine($readable->pipe($mock, true));
 
         $promise->done($this->createCallback(0), $this->createCallback(1));
 
@@ -884,15 +887,18 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $stream = $this->prophesize(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStreamInterface::class);
 
-        $stream->isWritable()->willReturn(true);
+        $mock->method('isWritable')
+            ->will($this->returnValue(true));
 
-        $stream->write(StreamTest::WRITE_STRING, 0)->willReturn(Promise\resolve(strlen(StreamTest::WRITE_STRING)));
+        $mock->method('write')
+            ->will($this->returnValue(Promise\resolve(strlen(StreamTest::WRITE_STRING))));
 
-        $stream->end()->shouldBeCalled();
+        $mock->expects($this->once())
+            ->method('end');
 
-        $promise = new Coroutine($readable->pipe($stream->reveal()));
+        $promise = new Coroutine($readable->pipe($mock));
 
         $exception = new Exception();
 
@@ -998,7 +1004,10 @@ class StreamTest extends TestCase
             }));
 
         $mock->expects($this->once())
-            ->method('write');
+            ->method('write')
+            ->will($this->returnCallback(function ($data) {
+                return Promise\resolve(strlen($data));
+            }));
 
         $mock->expects($this->never())
             ->method('end');
@@ -1037,6 +1046,9 @@ class StreamTest extends TestCase
                 $this->assertSame(substr(StreamTest::WRITE_STRING, 0, $offset + 1), $data);
                 return Promise\resolve(strlen($data));
             }));
+
+        $mock->expects($this->once())
+            ->method('end');
 
         $promise = new Coroutine($readable->pipe($mock, true, 0, $char));
 
@@ -1153,15 +1165,18 @@ class StreamTest extends TestCase
 
         $writable->write(StreamTest::WRITE_STRING);
 
-        $stream = $this->prophesize(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStreamInterface::class);
 
-        $stream->isWritable()->willReturn(true);
+        $mock->method('isWritable')
+            ->will($this->returnValue(true));
 
-        $stream->write(StreamTest::WRITE_STRING, 0)->willReturn(Promise\resolve(strlen(StreamTest::WRITE_STRING)));
+        $mock->method('write')
+            ->will($this->returnValue(Promise\resolve(strlen(StreamTest::WRITE_STRING))));
 
-        $stream->end()->shouldBeCalled();
+        $mock->expects($this->once())
+            ->method('end');
 
-        $promise = new Coroutine($readable->pipe($stream->reveal(), true, 0, '!'));
+        $promise = new Coroutine($readable->pipe($mock, true, 0, '!'));
 
         $promise->done($this->createCallback(0), $this->createCallback(1));
 
@@ -1365,7 +1380,10 @@ class StreamTest extends TestCase
             }));
 
         $mock->expects($this->once())
-            ->method('write');
+            ->method('write')
+            ->will($this->returnCallback(function ($data) {
+                return Promise\resolve(strlen($data));
+            }));
 
         $mock->expects($this->never())
             ->method('end');
