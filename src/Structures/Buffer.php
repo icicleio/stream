@@ -15,9 +15,9 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @param string $data
      */
-    public function __construct($data = '')
+    public function __construct(string $data = '')
     {
-        $this->data = (string) $data;
+        $this->data = $data;
     }
     
     /**
@@ -25,7 +25,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return int
      */
-    public function getLength()
+    public function getLength(): int
     {
         return strlen($this->data);
     }
@@ -33,7 +33,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * @return int
      */
-    public function count()
+    public function count(): int
     {
         return $this->getLength();
     }
@@ -43,7 +43,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return bool
      */
-    public function isEmpty()
+    public function isEmpty(): bool
     {
         return '' === $this->data;
     }
@@ -53,7 +53,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @param string $data
      */
-    public function push($data)
+    public function push(string $data)
     {
         $this->data .= $data;
     }
@@ -63,7 +63,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @param string $data
      */
-    public function unshift($data)
+    public function unshift(string $data)
     {
         $this->data = $data . $this->data;
     }
@@ -73,7 +73,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return string
      */
-    public function shift($length)
+    public function shift(int $length): string
     {
         $length = (int) $length;
         if (0 >= $length) {
@@ -101,7 +101,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return string
      */
-    public function peek($length, $offset = 0)
+    public function peek(int $length, int $offset = 0): string
     {
         $length = (int) $length;
         if (0 >= $length) {
@@ -127,7 +127,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return string
      */
-    public function pop($length)
+    public function pop(int $length): string
     {
         $length = (int) $length;
         if (0 >= $length) {
@@ -149,7 +149,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return string
      */
-    public function remove($length, $offset = 0)
+    public function remove(int $length, int $offset = 0): string
     {
         $length = (int) $length;
         if (0 >= $length) {
@@ -177,7 +177,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return string
      */
-    public function drain()
+    public function drain(): string
     {
         $buffer = $this->data;
         $this->data = '';
@@ -190,7 +190,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      * @param string $string
      * @param int $position
      */
-    public function insert($string, $position)
+    public function insert(string $string, int $position)
     {
         $this->data = substr_replace($this->data, $string, $position, 0);
     }
@@ -203,7 +203,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return int Number of replacements performed.
      */
-    public function replace($search, $replace)
+    public function replace($search, $replace): int
     {
         $this->data = str_replace($search, $replace, $this->data, $count);
         
@@ -236,7 +236,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return bool
      */
-    public function offsetExists($index)
+    public function offsetExists($index): bool
     {
         return isset($this->data[$index]);
     }
@@ -279,7 +279,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * @return BufferIterator
      */
-    public function getIterator()
+    public function getIterator(): \Iterator
     {
         return new BufferIterator($this);
     }
@@ -287,7 +287,7 @@ class Buffer implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * @return string
      */
-    public function __toString()
+    public function __toString(): string
     {
         return $this->data;
     }
