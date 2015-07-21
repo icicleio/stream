@@ -22,12 +22,8 @@ trait ParserTrait
      *
      * @return int
      */
-    protected function parseLength($length)
+    protected function parseLength(int $length): int
     {
-        $length = (int) $length;
-        if (0 <= $length) {
-            return $length;
-        }
-        return 0;
+        return 0 > $length ? 0 : $length;
     }
 }

@@ -1,4 +1,4 @@
 <?php
 namespace Icicle\Stream\Exception;
 
-class Error extends \Exception {}
+class Error extends \Error {}

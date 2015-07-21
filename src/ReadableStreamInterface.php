@@ -1,6 +1,8 @@
 <?php
 namespace Icicle\Stream;
 
+use Icicle\Promise\PromiseInterface;
+
 interface ReadableStreamInterface extends StreamInterface
 {
     /**
@@ -21,7 +23,7 @@ interface ReadableStreamInterface extends StreamInterface
      * @reject \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @reject \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function read($length = 0, $byte = null, $timeout = 0);
+    public function read(int $length = 0, $byte = null, float $timeout = 0): PromiseInterface;
 
     /**
      * Determines if the stream is still readable. A stream being readable does not mean there is data immediately
@@ -29,7 +31,7 @@ interface ReadableStreamInterface extends StreamInterface
      *
      * @return bool
      */
-    public function isReadable();
+    public function isReadable(): bool;
     
     /**
      * @coroutine
@@ -57,5 +59,11 @@ interface ReadableStreamInterface extends StreamInterface
      * @reject \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @reject \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function pipe(WritableStreamInterface $stream, $end = true, $length = 0, $byte = null, $timeout = 0);
+    public function pipe(
+        WritableStreamInterface $stream,
+        bool $end = true,
+        int $length = 0,
+        $byte = null,
+        float $timeout = 0
+    ): \Generator;
 }

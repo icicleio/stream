@@ -1,6 +1,8 @@
 <?php
 namespace Icicle\Stream;
 
+use Icicle\Promise\PromiseInterface;
+
 interface SeekableStreamInterface extends StreamInterface
 {
     /**
@@ -22,7 +24,7 @@ interface SeekableStreamInterface extends StreamInterface
      * @reject \Icicle\Stream\Exception\BusyError If the stream was already waiting on a read or seek operation.
      * @reject \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function seek($offset, $whence = SEEK_SET, $timeout = 0);
+    public function seek(int $offset, int $whence = SEEK_SET, float $timeout = 0): PromiseInterface;
 
     /**
      * Current pointer position. Value returned may not reflect the future pointer position if a read, write, or seek
@@ -30,7 +32,7 @@ interface SeekableStreamInterface extends StreamInterface
      *
      * @return int
      */
-    public function tell();
+    public function tell(): int;
 
     /**
      * Returns the total length of the stream if known, otherwise null. Value returned may not reflect a pending write

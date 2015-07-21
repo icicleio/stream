@@ -1,6 +1,7 @@
 <?php
 namespace Icicle\Stream;
 
+use Icicle\Promise\PromiseInterface;
 use Icicle\Stream\Exception\UnwritableException;
 
 trait PipeTrait
@@ -16,14 +17,14 @@ trait PipeTrait
      *
      * @return \Icicle\Promise\PromiseInterface
      */
-    abstract public function read($length = 0, $byte = null, $timeout = 0);
+    abstract public function read(int $length = 0, $byte = null, float $timeout = 0): PromiseInterface;
 
     /**
      * @see \Icicle\Stream\ReadableStreamInterface::isReadable()
      *
      * @return bool
      */
-    abstract public function isReadable();
+    abstract public function isReadable(): bool;
 
     /**
      * @see \Icicle\Stream\ReadableStreamInterface::pipe()
@@ -46,8 +47,13 @@ trait PipeTrait
      * @reject \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @reject \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function pipe(WritableStreamInterface $stream, $end = true, $length = 0, $byte = null, $timeout = 0)
-    {
+    public function pipe(
+        WritableStreamInterface $stream,
+        bool $end = true,
+        int $length = 0,
+        $byte = null,
+        float $timeout = 0
+    ): \Generator {
         if (!$stream->isWritable()) {
             throw new UnwritableException('The stream is not writable.');
         }
@@ -59,7 +65,7 @@ trait PipeTrait
 
         try {
             do {
-                $data = (yield $this->read($length, $byte, $timeout));
+                $data = yield $this->read($length, $byte, $timeout);
 
                 $count = strlen($data);
                 $bytes += $count;
@@ -76,6 +82,6 @@ trait PipeTrait
             }
         }
 
-        yield $bytes;
+        return $bytes;
     }
 }

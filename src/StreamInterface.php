@@ -8,7 +8,7 @@ interface StreamInterface
      *
      * @return bool
      */
-    public function isOpen();
+    public function isOpen(): bool;
     
     /**
      * Closes the stream, making it unreadable or unwritable.

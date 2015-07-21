@@ -1,6 +1,8 @@
 <?php
 namespace Icicle\Stream;
 
+use Icicle\Promise\PromiseInterface;
+
 interface WritableStreamInterface extends StreamInterface
 {
     /**
@@ -19,7 +21,7 @@ interface WritableStreamInterface extends StreamInterface
      * @reject \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @reject \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function write($data, $timeout = 0);
+    public function write(string $data, float $timeout = 0): PromiseInterface;
 
     /**
      * Queues the data to be sent on the stream and closes the stream once the data has been written.
@@ -36,12 +38,12 @@ interface WritableStreamInterface extends StreamInterface
      * @reject \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @reject \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function end($data = '', $timeout = 0);
+    public function end(string $data = '', float $timeout = 0): PromiseInterface;
     
     /**
      * Determines if the stream is still writable.
      *
      * @return bool
      */
-    public function isWritable();
+    public function isWritable(): bool;
 }

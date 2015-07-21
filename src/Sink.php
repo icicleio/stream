@@ -2,6 +2,7 @@
 namespace Icicle\Stream;
 
 use Icicle\Promise;
+use Icicle\Promise\PromiseInterface;
 use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\OutOfBoundsException;
 use Icicle\Stream\Exception\UnreadableException;
@@ -51,7 +52,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function isOpen()
+    public function isOpen(): bool
     {
         return $this->open;
     }
@@ -68,7 +69,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function isReadable()
+    public function isReadable(): bool
     {
         return $this->isOpen() && $this->iterator->valid();
     }
@@ -76,7 +77,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function read($length = 0, $byte = null, $timeout = 0)
+    public function read(int $length = 0, $byte = null, float $timeout = 0): PromiseInterface
     {
         if (!$this->isReadable()) {
             return Promise\reject(new UnreadableException('The stream is no longer readable.'));
@@ -117,7 +118,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function isWritable()
+    public function isWritable(): bool
     {
         return $this->writable;
     }
@@ -125,7 +126,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function write($data, $timeout = 0)
+    public function write(string $data, float $timeout = 0): PromiseInterface
     {
         return $this->send($data, $timeout, false);
     }
@@ -133,7 +134,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function end($data = '', $timeout = 0)
+    public function end(string $data = '', float $timeout = 0): PromiseInterface
     {
         return $this->send($data, $timeout, true);
     }
@@ -145,7 +146,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
      *
      * @return \Icicle\Promise\PromiseInterface
      */
-    protected function send($data, $timeout = 0, $end = false)
+    protected function send(string $data, float $timeout = 0, bool $end = false): PromiseInterface
     {
         if (!$this->isWritable()) {
             return Promise\reject(new UnwritableException('The stream is no longer writable.'));
@@ -171,7 +172,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function seek($offset, $whence = SEEK_SET, $timeout = 0)
+    public function seek(int $offset, int $whence = SEEK_SET, float $timeout = 0): PromiseInterface
     {
         if (!$this->isOpen()) {
             return Promise\reject(new UnseekableException('The stream is no longer seekable.'));
@@ -209,7 +210,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function tell()
+    public function tell(): int
     {
         return $this->iterator->key();
     }

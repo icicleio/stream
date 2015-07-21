@@ -1,9 +1,9 @@
 <?php
 namespace Icicle\Stream;
 
-use Exception;
 use Icicle\Promise;
 use Icicle\Promise\Deferred;
+use Icicle\Promise\PromiseInterface;
 use Icicle\Stream\Exception\BusyError;
 use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\UnreadableException;
@@ -63,7 +63,7 @@ class Stream implements DuplexStreamInterface
      * @param int $hwm High water mark. If the internal buffer has more than $hwm bytes, writes to the stream will
      *     return pending promises until the data is consumed.
      */
-    public function __construct($hwm = 0)
+    public function __construct(int $hwm = 0)
     {
         $this->buffer = new Buffer();
         $this->hwm = $this->parseLength($hwm);
@@ -76,7 +76,7 @@ class Stream implements DuplexStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function isOpen()
+    public function isOpen(): bool
     {
         return $this->open;
     }
@@ -116,7 +116,7 @@ class Stream implements DuplexStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function read($length = 0, $byte = null, $timeout = 0)
+    public function read(int $length = 0, $byte = null, float $timeout = 0): PromiseInterface
     {
         if (null !== $this->deferred) {
             return Promise\reject(new BusyError('Already waiting on stream.'));
@@ -165,7 +165,7 @@ class Stream implements DuplexStreamInterface
      *
      * @return string
      */
-    private function remove()
+    private function remove(): string
     {
         if (null !== $this->byte && false !== ($position = $this->buffer->search($this->byte))) {
             if (0 === $this->length || $position < $this->length) {
@@ -185,7 +185,7 @@ class Stream implements DuplexStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function isReadable()
+    public function isReadable(): bool
     {
         return $this->isOpen();
     }
@@ -193,7 +193,7 @@ class Stream implements DuplexStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function write($data, $timeout = 0)
+    public function write(string $data, float $timeout = 0): PromiseInterface
     {
         return $this->send($data, $timeout, false);
     }
@@ -201,7 +201,7 @@ class Stream implements DuplexStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function end($data = '', $timeout = 0)
+    public function end(string $data = '', float $timeout = 0): PromiseInterface
     {
         return $this->send($data, $timeout, true);
     }
@@ -215,7 +215,7 @@ class Stream implements DuplexStreamInterface
      *
      * @resolve int Number of bytes written to the stream.
      */
-    protected function send($data, $timeout = 0, $end = false)
+    protected function send(string $data, float $timeout = 0, bool $end = false): PromiseInterface
     {
         if (!$this->isWritable()) {
             return Promise\reject(new UnwritableException('The stream is no longer writable.'));
@@ -237,7 +237,7 @@ class Stream implements DuplexStreamInterface
         }
 
         if (0 !== $this->hwm && $this->buffer->getLength() > $this->hwm) {
-            $deferred = new Deferred(function (\Exception $exception) {
+            $deferred = new Deferred(function (\Throwable $exception) {
                 $this->free($exception);
             });
             $this->deferredQueue->push([strlen($data), $deferred]);
@@ -255,7 +255,7 @@ class Stream implements DuplexStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function isWritable()
+    public function isWritable(): bool
     {
         return $this->writable;
     }
