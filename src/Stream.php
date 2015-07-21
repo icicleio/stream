@@ -92,9 +92,9 @@ class Stream implements DuplexStreamInterface
     /**
      * Closes the stream and rejects any pending promises.
      *
-     * @param \Exception|null $exception
+     * @param \Throwable|null $exception
      */
-    protected function free(Exception $exception = null)
+    protected function free(\Throwable $exception = null)
     {
         $this->open = false;
         $this->writable = false;
