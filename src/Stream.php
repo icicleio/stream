@@ -2,12 +2,8 @@
 namespace Icicle\Stream;
 
 use Icicle\Promise;
-use Icicle\Promise\Deferred;
-use Icicle\Promise\PromiseInterface;
-use Icicle\Stream\Exception\BusyError;
-use Icicle\Stream\Exception\ClosedException;
-use Icicle\Stream\Exception\UnreadableException;
-use Icicle\Stream\Exception\UnwritableException;
+use Icicle\Promise\{Deferred, PromiseInterface};
+use Icicle\Stream\Exception\{BusyError, ClosedException, UnreadableException, UnwritableException};
 use Icicle\Stream\Structures\Buffer;
 
 /**

@@ -3,11 +3,13 @@ namespace Icicle\Stream;
 
 use Icicle\Promise;
 use Icicle\Promise\PromiseInterface;
-use Icicle\Stream\Exception\InvalidArgumentError;
-use Icicle\Stream\Exception\OutOfBoundsException;
-use Icicle\Stream\Exception\UnreadableException;
-use Icicle\Stream\Exception\UnseekableException;
-use Icicle\Stream\Exception\UnwritableException;
+use Icicle\Stream\Exception\{
+    InvalidArgumentError,
+    OutOfBoundsException,
+    UnreadableException,
+    UnseekableException,
+    UnwritableException
+};
 use Icicle\Stream\Structures\Buffer;
 
 /**
