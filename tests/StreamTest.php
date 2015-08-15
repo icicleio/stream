@@ -705,7 +705,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) {
                 $this->assertSame(StreamTest::WRITE_STRING, $data);
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -767,7 +767,7 @@ class StreamTest extends TestCase
         $stream->isWritable()->willReturn(true);
 
         $generator = function () {
-            yield strlen(StreamTest::WRITE_STRING);
+            return yield strlen(StreamTest::WRITE_STRING);
         };
         $stream->write(StreamTest::WRITE_STRING, 0)->willReturn($generator());
 
@@ -805,7 +805,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) use ($readable) {
                 $readable->close();
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -843,7 +843,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) {
                 $this->assertSame(StreamTest::WRITE_STRING, $data);
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -883,7 +883,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) use ($readable) {
                 $readable->close();
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -916,7 +916,7 @@ class StreamTest extends TestCase
         $stream->isWritable()->willReturn(true);
 
         $generator = function () {
-            yield strlen(StreamTest::WRITE_STRING);
+            return yield strlen(StreamTest::WRITE_STRING);
         };
         $stream->write(StreamTest::WRITE_STRING, 0)->willReturn($generator());
 
@@ -962,7 +962,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) use ($length) {
                 $this->assertSame(substr(StreamTest::WRITE_STRING, 0, $length), $data);
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -989,7 +989,7 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) {
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -1036,7 +1036,10 @@ class StreamTest extends TestCase
         $mock->expects($this->once())
             ->method('write')
             ->will($this->returnCallback(function ($data) {
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    return yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->never())
@@ -1075,7 +1078,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) use ($offset) {
                 $this->assertSame(substr(StreamTest::WRITE_STRING, 0, $offset + 1), $data);
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -1117,7 +1120,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) use ($offset) {
                 $this->assertSame(substr(StreamTest::WRITE_STRING, 0, $offset + 1), $data);
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -1179,7 +1182,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) use ($offset) {
                 $this->assertSame(substr(StreamTest::WRITE_STRING, 0, $offset + 1), $data);
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -1209,7 +1212,7 @@ class StreamTest extends TestCase
         $stream->isWritable()->willReturn(true);
 
         $generator = function () {
-            yield strlen(StreamTest::WRITE_STRING);
+            return yield strlen(StreamTest::WRITE_STRING);
         };
         $stream->write(StreamTest::WRITE_STRING, 0)->willReturn($generator());
 
@@ -1247,7 +1250,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) use ($readable) {
                 $readable->close();
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -1285,7 +1288,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) {
                 $this->assertSame(StreamTest::WRITE_STRING, $data);
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -1325,7 +1328,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) use ($readable) {
                 $readable->close();
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -1367,7 +1370,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) use ($length) {
                 $this->assertSame(substr(StreamTest::WRITE_STRING, 0, $length), $data);
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -1395,7 +1398,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) use ($offset, $length) {
                 $this->assertSame(substr(StreamTest::WRITE_STRING, $length, $offset - $length + 1), $data);
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -1505,7 +1508,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) {
                 $this->assertSame(StreamTest::WRITE_STRING, $data);
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -1546,7 +1549,7 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($length) {
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -1588,7 +1591,7 @@ class StreamTest extends TestCase
             ->will($this->returnCallback(function ($data) {
                 $this->assertSame(StreamTest::WRITE_STRING, $data);
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
@@ -1629,7 +1632,7 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($length) {
                 $generator = function () use ($data) {
-                    yield strlen($data);
+                    return yield strlen($data);
                 };
                 return $generator();
             }));
