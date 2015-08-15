@@ -142,8 +142,7 @@ class Stream implements DuplexStreamInterface
                 $this->close();
             }
 
-            yield $data;
-            return;
+            return $data;
         }
 
         $this->deferred = new Deferred();
@@ -154,7 +153,7 @@ class Stream implements DuplexStreamInterface
         }
 
         try {
-            yield $promise;
+            return yield $promise;
         } finally {
             $this->deferred = null;
         }
@@ -259,7 +258,7 @@ class Stream implements DuplexStreamInterface
             }
         }
 
-        yield strlen($data);
+        return strlen($data);
     }
 
     /**

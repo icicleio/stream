@@ -95,8 +95,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
                 $data .= $char;
             } while ($char !== $byte && (0 === $length || ++$i < $length) && $this->iterator->valid());
 
-            yield $data;
-            return;
+            return $data;
         }
 
         if (0 === $length) {
@@ -113,7 +112,9 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
 
         $this->iterator->seek($position);
 
-        yield $data;
+        return $data;
+
+        yield; // Unreachable, but makes the method a coroutine.
     }
 
     /**
@@ -171,7 +172,9 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
 
         $this->iterator->seek($this->iterator->key() + $length);
 
-        yield $length;
+        return $length;
+
+        yield; // Unreachable, but makes the method a coroutine.
     }
 
     /**
@@ -207,7 +210,9 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
 
         $this->iterator->seek($offset);
 
-        yield $offset;
+        return $offset;
+
+        yield; // Unreachable, but makes the method a coroutine.
     }
 
     /**
