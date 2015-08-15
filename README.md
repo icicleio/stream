@@ -2,8 +2,8 @@
 
 This library is a component for [Icicle](https://github.com/icicleio/Icicle), providing an asynchronous readable, writable, and seekable stream interfaces and a couple basic stream implementations. Like other Icicle components, this library uses [Promises](https://github.com/icicleio/Icicle/wiki/Promises) and [Generators](http://www.php.net/manual/en/language.generators.overview.php) for asynchronous operations that may be used to build [Coroutines](//github.com/icicleio/Icicle/wiki/Coroutines) to make writing asynchronous code more like writing synchronous code.
 
-[![Build Status](https://img.shields.io/travis/icicleio/stream/master.svg?style=flat-square)](https://travis-ci.org/icicleio/stream)
-[![Coverage Status](https://img.shields.io/coveralls/icicleio/stream.svg?style=flat-square)](https://coveralls.io/r/icicleio/stream)
+[![Build Status](https://img.shields.io/travis/icicleio/stream/v1.x.svg?style=flat-square)](https://travis-ci.org/icicleio/stream)
+[![Coverage Status](https://img.shields.io/coveralls/icicleio/stream/v1.x.svg?style=flat-square)](https://coveralls.io/r/icicleio/stream)
 [![Semantic Version](https://img.shields.io/github/release/icicleio/stream.svg?style=flat-square)](http://semver.org)
 [![Apache 2 License](https://img.shields.io/packagist/l/icicleio/stream.svg?style=flat-square)](LICENSE)
 [![@icicleio on Twitter](https://img.shields.io/badge/twitter-%40icicleio-5189c7.svg?style=flat-square)](https://twitter.com/icicleio)
@@ -28,7 +28,7 @@ You can also manually edit `composer.json` to add this library as a project requ
 // composer.json
 {
     "require": {
-        "icicleio/stream": "^0.1"
+        "icicleio/stream": "^0.2"
     }
 }
 ```
@@ -66,10 +66,14 @@ Streams represent a common promise-based API that may be implemented by classes 
 Prototypes for object instance methods are described below using the following syntax:
 
 ```php
-ReturnType ClassOrInterfaceName::methodName(ArgumentType $arg1, ArgumentType $arg2)
+ClassOrInterfaceName::methodName(ArgumentType $arg): ReturnType
 ```
 
-Note that references in the prototypes below to `PromiseInterface` refer to `Icicle\Promise\PromiseInterface` (see the [Promise API documentation](../Promises) for more information).
+To document the expected prototype of a callback function used as method arguments or return types, the documentation below uses the following syntax for `callable` types:
+
+```php
+callable<(ArgumentType $arg): ReturnType>
+```
 
 ## StreamInterface
 
@@ -98,10 +102,11 @@ Closes the stream. Once closed, a stream will no longer be readable or writable.
 #### read()
 
 ```php
-PromiseInterface ReadableStreamInterface::read(
+ReadableStreamInterface::read(
     int $length = 0,
-    string|int|null $byte = null
-)
+    string|int|null $byte = null,
+    float $timeout = 0
+): Generator
 ```
 
 Returns a promise that is fulfilled with data read from the stream when data becomes available. If `$length` is `0`, the promise is fulfilled with any amount of data available on the stream. If `$length` is not `0` the promise will be fulfilled with a maximum of `$length` bytes, but it may be fulfilled with fewer bytes. If the `$byte` parameter is not `null`, reading will stop once the given byte is encountered in the string. The byte matched by `$byte` will be included in the fulfillment string. `$byte` should be a single byte or the integer value of the byte (e.g., `0xa` for the newline character). If a multibyte string is provided, only the first byte will be used.
@@ -119,13 +124,13 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the str
 #### pipe()
 
 ```php
-Generator ReadableStreamInterface::pipe(
+ReadableStreamInterface::pipe(
     WritableStreamInterface $stream,
     bool $end = true,
     int $length = 0,
     string|int|null $byte = null
-    int $timeout = 0
-)
+    float $timeout = 0
+): Generator
 ```
 
 Returns a generator that should be used within a coroutine or used to create a new coroutine. Pipes all data read from this stream to the writable stream. If `$length` is not `0`, only `$length` bytes will be piped to the writable stream.  If `$byte` is not `0`, piping will end once `$byte` is encountered in the stream. The returned promise is fulfilled with the number of bytes piped once the writable stream is no longer writable, `$length` bytes have been piped, or `$byte` is encountered in the stream.
@@ -143,7 +148,7 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the str
 #### isReadable()
 
 ```php
-bool ReadableStreamInterface::isReadable()
+ReadableStreamInterface::isReadable(): bool
 ```
 
 Determines if the stream is readable.
@@ -153,7 +158,10 @@ Determines if the stream is readable.
 #### write()
 
 ```php
-PromiseInterface WritableStreamInterface::write(string $data)
+WritableStreamInterface::write(
+    string $data,
+    float $timeout = 0
+): Generator
 ```
 
 Writes the given data to the stream. Returns a promise that is fulfilled with the number of bytes written once that data has successfully been written to the stream.
@@ -170,7 +178,10 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If writing to the strea
 #### end()
 
 ```php
-PromiseInterface WritableStreamInterface::end(string $data = '')
+WritableStreamInterface::end(
+    string $data = '',
+    float $timeout = 0
+): Generator
 ```
 
 Writes the given data to the stream then immediately closes the stream by calling `close()`.
@@ -187,7 +198,7 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If writing to the strea
 #### isWritable()
 
 ```php
-bool WritableStreamInterface::isWritable()
+WritableStreamInterface::isWritable(): bool
 ```
 
 Determines if the stream is writable.
@@ -201,7 +212,11 @@ A duplex stream is both readable and writable. `Icicle\Stream\DuplexStreamInterf
 #### seek()
 
 ```php
-PromiseInterface SeekableStreamInterface::seek(int $position, $whence = SEEK_SET, $timeout = 0)
+SeekableStreamInterface::seek(
+    int $position,
+    int $whence = SEEK_SET,
+    float $timeout = 0
+): Generator
 ```
 
 Moves the pointer to a new position in the stream. The `$whence` parameter is identical the parameter of the same name on the built-in `fseek()` function.
@@ -218,7 +233,7 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If seeking times out.
 #### tell()
 
 ```php
-int SeekableStreamInterface::tell()
+SeekableStreamInterface::tell(): int
 ```
 
 Returns the current pointer position. Value returned may not reflect the future pointer position if a read, write, or seek operation is pending.
@@ -235,10 +250,10 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If writing to the strea
 #### getLength()
 
 ```php
-int|null SeekableStreamInterface::getLength()
+SeekableStreamInterface::getLength(): int|null
 ```
 
-Returns the total length of the stream if known, otherwise null. Value returned may not reflect a pending writeoperation.
+Returns the total length of the stream if known, otherwise null. Value returned may not reflect a pending write operation.
 
 ## Stream
 
@@ -247,19 +262,21 @@ Returns the total length of the stream if known, otherwise null. Value returned 
 Anything written to an instance of `Icicle\Stream\Stream` is immediately readable.
 
 ```php
+use Icicle\Coroutine\Coroutine;
 use Icicle\Loop;
 use Icicle\Stream\Stream;
 
 $stream = new Stream();
 
-$stream
-    ->write("This is just a test.\nThis will not be read.")
-    ->then(function () use ($stream) {
-        return $stream->read(0, "\n");
-    })
-    ->then(function ($data) {
-        echo $data; // Echoes "This is just a test."
-    });
+$generator = function ($stream) {
+    yield $stream->write("This is just a test.\nThis will not be read.");
+    
+    $data = (yield $stream->read(0, "\n"));
+    
+    echo $data; // Echoes "This is just a test."
+};
+
+$coroutine = new Coroutine($generator($stream));
 
 Loop\run();
 ```
@@ -284,10 +301,8 @@ $coroutine = Coroutine\create(function () {
 
     yield $sink->seek(0);
 
-    $data = (yield $sink->read(0, "\n"));
-
-    echo $data; // Echoes "This is just a sink test."
+    yield $sink->read(0, "\n"); // Last `yield` acts like `return`
 });
 
-Loop\run();
+echo $coroutine->wait(); // Echoes "This is just a sink test."
 ```
