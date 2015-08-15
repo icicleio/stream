@@ -1,11 +1,11 @@
 <?php
 namespace Icicle\Stream;
 
-use Icicle\Promise\PromiseInterface;
-
 interface ReadableStreamInterface extends StreamInterface
 {
     /**
+     * @coroutine
+     *
      * @param int $length Max number of bytes to read. Fewer bytes may be returned. Use 0 to read as much data
      *     as possible.
      * @param string|int|null $byte Reading will stop once the given byte occurs in the stream. Note that reading may
@@ -14,16 +14,16 @@ interface ReadableStreamInterface extends StreamInterface
      * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
      *     if no data is received. Use 0 for no timeout.
      *
-     * @return \Icicle\Promise\PromiseInterface
+     * @return \Generator
      *
      * @resolve string Data read from the stream.
      *
-     * @reject \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
-     * @reject \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
-     * @reject \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @reject \Icicle\Promise\Exception\TimeoutException If the operation times out.
+     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
+     * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function read(int $length = 0, $byte = null, float $timeout = 0): PromiseInterface;
+    public function read(int $length = 0, $byte = null, float $timeout = 0): \Generator;
 
     /**
      * Determines if the stream is still readable. A stream being readable does not mean there is data immediately
@@ -53,11 +53,11 @@ interface ReadableStreamInterface extends StreamInterface
      *     read from the stream, or $byte was read from the stream (if $byte was not null). Resolves with the number of
      *     bytes read from the stream.
      *
-     * @reject \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
-     * @reject \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
-     * @reject \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
-     * @reject \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @reject \Icicle\Promise\Exception\TimeoutException If the operation times out.
+     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
+     * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
+     * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function pipe(
         WritableStreamInterface $stream,

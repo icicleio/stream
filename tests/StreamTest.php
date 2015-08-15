@@ -4,6 +4,7 @@ namespace Icicle\Tests\Stream;
 use Exception;
 use Icicle\Coroutine\Coroutine;
 use Icicle\Loop;
+use Icicle\Loop\SelectLoop;
 use Icicle\Promise;
 use Icicle\Promise\Exception\TimeoutException;
 use Icicle\Stream\Exception\BusyError;
@@ -20,6 +21,11 @@ class StreamTest extends TestCase
     const TIMEOUT = 0.1;
     const HWM = 16384;
 
+    public function setUp()
+    {
+        Loop\loop(new SelectLoop());
+    }
+    
     /**
      * @param int $hwm
      *
@@ -32,18 +38,13 @@ class StreamTest extends TestCase
         return [$stream, $stream];
     }
 
-    public function tearDown()
-    {
-        Loop\clear();
-    }
-
     public function testRead()
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -65,7 +66,7 @@ class StreamTest extends TestCase
 
         $this->assertFalse($readable->isReadable());
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -83,7 +84,9 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
+
+        Loop\tick(false);
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -103,9 +106,11 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise1 = $readable->read();
+        $promise1 = new Coroutine($readable->read());
+        Loop\tick(false);
 
-        $promise2 = $readable->read();
+        $promise2 = new Coroutine($readable->read());
+        Loop\tick(false);
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -119,7 +124,7 @@ class StreamTest extends TestCase
 
         $promise2->done($this->createCallback(0), $callback);
 
-        $writable->write(StreamTest::WRITE_STRING);
+        $promise = new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         Loop\run();
     }
@@ -131,11 +136,11 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $length = floor(strlen(StreamTest::WRITE_STRING) / 2);
 
-        $promise = $readable->read($length);
+        $promise = new Coroutine($readable->read($length));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -145,7 +150,7 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $promise = $readable->read($length);
+        $promise = new Coroutine($readable->read($length));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -163,9 +168,9 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
-        $promise = $readable->read(-1);
+        $promise = new Coroutine($readable->read(-1));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -185,7 +190,8 @@ class StreamTest extends TestCase
 
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
+        Loop\tick(false);
 
         $promise->cancel($exception);
 
@@ -197,7 +203,8 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
+        Loop\tick(false);
 
         $this->assertTrue($promise->isPending());
 
@@ -207,7 +214,7 @@ class StreamTest extends TestCase
 
         $promise->done($callback);
 
-        $writable->write(StreamTest::WRITE_STRING);
+        $promise = new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         Loop\run();
     }
@@ -219,7 +226,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $readable->read(); // Nothing to read on this stream.
+        $promise = new Coroutine($readable->read()); // Nothing to read on this stream.
 
         Loop\tick();
 
@@ -233,9 +240,9 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -245,7 +252,7 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
 
         Loop\tick();
 
@@ -253,7 +260,7 @@ class StreamTest extends TestCase
 
         $string = "This is a string to write.\n";
 
-        $promise2 = $writable->write($string);
+        $promise2 = new Coroutine($writable->write($string));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -277,12 +284,12 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $offset = 5;
         $char = substr(StreamTest::WRITE_STRING, $offset, 1);
 
-        $promise = $readable->read(0, $char);
+        $promise = new Coroutine($readable->read(0, $char));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -300,13 +307,13 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $offset = 5;
         $byte = unpack('C', substr(StreamTest::WRITE_STRING, $offset, 1));
         $byte = $byte[1];
 
-        $promise = $readable->read(0, $byte);
+        $promise = new Coroutine($readable->read(0, $byte));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -324,13 +331,13 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $offset = 5;
         $length = 3;
         $string = substr(StreamTest::WRITE_STRING, $offset, $length);
 
-        $promise = $readable->read(0, $string);
+        $promise = new Coroutine($readable->read(0, $string));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -348,11 +355,11 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $char = '~';
 
-        $promise = $readable->read(0, $char);
+        $promise = new Coroutine($readable->read(0, $char));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -362,8 +369,7 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $promise = $readable->read(0, $char);
-
+        $promise = new Coroutine($readable->read(0, $char));
         Loop\tick();
 
         $this->assertTrue($promise->isPending());
@@ -376,9 +382,9 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
-        $promise = $readable->read(0, '');
+        $promise = new Coroutine($readable->read(0, ''));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -400,7 +406,7 @@ class StreamTest extends TestCase
 
         $this->assertFalse($readable->isReadable());
 
-        $promise = $readable->read(0, "\0");
+        $promise = new Coroutine($readable->read(0, "\0"));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -418,7 +424,8 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $readable->read(0, "\0");
+        $promise = new Coroutine($readable->read(0, "\0"));
+        Loop\tick(false);
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -438,9 +445,11 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise1 = $readable->read(0, "\0");
+        $promise1 = new Coroutine($readable->read(0, "\0"));
+        Loop\tick(false);
 
-        $promise2 = $readable->read(0, "\0");
+        $promise2 = new Coroutine($readable->read(0, "\0"));
+        Loop\tick(false);
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -454,7 +463,7 @@ class StreamTest extends TestCase
 
         $promise2->done($this->createCallback(0), $callback);
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         Loop\run();
     }
@@ -470,7 +479,8 @@ class StreamTest extends TestCase
         $length = 5;
         $char = substr(StreamTest::WRITE_STRING, $offset, 1);
 
-        $promise = $readable->read($length, $char);
+        $promise = new Coroutine($readable->read($length, $char));
+        Loop\tick();
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -478,11 +488,11 @@ class StreamTest extends TestCase
 
         $promise->done($callback);
 
-        $writable->write(StreamTest::WRITE_STRING);
+        $promise = new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         Loop\run();
 
-        $promise = $readable->read(0, $char);
+        $promise = new Coroutine($readable->read(0, $char));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -500,12 +510,12 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $offset = 5;
         $char = substr(StreamTest::WRITE_STRING, $offset, 1);
 
-        $promise = $readable->read(-1, $char);
+        $promise = new Coroutine($readable->read(-1, $char));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -527,7 +537,8 @@ class StreamTest extends TestCase
 
         $char = substr(StreamTest::WRITE_STRING, 0, 1);
 
-        $promise = $readable->read(0, $char);
+        $promise = new Coroutine($readable->read(0, $char));
+        Loop\tick(false);
 
         $promise->cancel($exception);
 
@@ -539,7 +550,8 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $promise = $readable->read(0, $char);
+        $promise = new Coroutine($readable->read(0, $char));
+        Loop\tick(false);
 
         $this->assertTrue($promise->isPending());
 
@@ -549,7 +561,7 @@ class StreamTest extends TestCase
 
         $promise->done($callback);
 
-        $writable->write(StreamTest::WRITE_STRING);
+        $promise = new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         Loop\run();
     }
@@ -561,8 +573,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $readable->read(0, "\n"); // Nothing to read on this stream.
-
+        $promise = new Coroutine($readable->read(0, "\n")); // Nothing to read on this stream.
         Loop\tick();
 
         $this->assertTrue($promise->isPending());
@@ -575,15 +586,15 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $char = "\n";
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
 
         Loop\run();
 
-        $promise = $readable->read(0, $char);
+        $promise = new Coroutine($readable->read(0, $char));
 
         Loop\tick();
 
@@ -592,7 +603,7 @@ class StreamTest extends TestCase
         $string1 = "This is a string to write.\n";
         $string2 = "This part should not be read.\n";
 
-        $writable->write($string1 . $string2);
+        new Coroutine($writable->write($string1 . $string2));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -610,12 +621,12 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $offset = 5;
         $char = substr(StreamTest::WRITE_STRING, $offset, 1);
 
-        $promise = $readable->read(0, $char);
+        $promise = new Coroutine($readable->read(0, $char));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -625,7 +636,7 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -648,7 +659,8 @@ class StreamTest extends TestCase
         $offset = 5;
         $char = substr(StreamTest::WRITE_STRING, $offset, 1);
 
-        $promise = $readable->read(0, $char);
+        $promise = new Coroutine($readable->read(0, $char));
+        Loop\tick();
 
         $promise->cancel($exception);
 
@@ -660,7 +672,8 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
+        Loop\tick();
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -668,7 +681,7 @@ class StreamTest extends TestCase
 
         $promise->done($callback);
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         Loop\run();
     }
@@ -696,23 +709,23 @@ class StreamTest extends TestCase
             }));
 
         $promise = new Coroutine($readable->pipe($mock));
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         Loop\tick();
 
         $this->assertTrue($promise->isPending());
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         Loop\tick();
 
         $this->assertTrue($promise->isPending());
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         Loop\tick();
 
         $this->assertFalse($promise->isPending());
         $this->assertTrue($promise->isFulfilled());
-        $this->assertSame(strlen(StreamTest::WRITE_STRING) * 3, $promise->getResult());
+        $this->assertSame(strlen(StreamTest::WRITE_STRING) * 3, $promise->wait());
     }
 
     /**
@@ -745,7 +758,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $mock = $this->getMock(WritableStreamInterface::class);
 
@@ -778,7 +791,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $mock = $this->getMock(WritableStreamInterface::class);
 
@@ -813,7 +826,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $mock = $this->getMock(WritableStreamInterface::class);
 
@@ -850,7 +863,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $mock = $this->getMock(WritableStreamInterface::class);
 
@@ -885,7 +898,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $mock = $this->getMock(WritableStreamInterface::class);
 
@@ -924,7 +937,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $length = 8;
 
@@ -979,7 +992,7 @@ class StreamTest extends TestCase
 
         $this->assertTrue($promise->isPending());
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         Loop\tick();
 
@@ -993,7 +1006,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $mock = $this->getMock(WritableStreamInterface::class);
 
@@ -1030,7 +1043,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $offset = 10;
         $char = substr(StreamTest::WRITE_STRING, $offset, 1);
@@ -1068,7 +1081,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $offset = 10;
         $byte = unpack('C', substr(StreamTest::WRITE_STRING, $offset, 1));
@@ -1127,7 +1140,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $offset = 5;
         $length = 3;
@@ -1163,7 +1176,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $mock = $this->getMock(WritableStreamInterface::class);
 
@@ -1196,7 +1209,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $mock = $this->getMock(WritableStreamInterface::class);
 
@@ -1231,7 +1244,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $mock = $this->getMock(WritableStreamInterface::class);
 
@@ -1268,7 +1281,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $mock = $this->getMock(WritableStreamInterface::class);
 
@@ -1303,7 +1316,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $length = 8;
         $offset = 10;
@@ -1369,7 +1382,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $mock = $this->getMock(WritableStreamInterface::class);
 
@@ -1406,7 +1419,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $readable->read(0, null, StreamTest::TIMEOUT);
+        $promise = new Coroutine($readable->read(0, null, StreamTest::TIMEOUT));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1424,7 +1437,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $readable->read(0, "\0", StreamTest::TIMEOUT);
+        $promise = new Coroutine($readable->read(0, "\0", StreamTest::TIMEOUT));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1442,7 +1455,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $mock = $this->getMock(WritableStreamInterface::class);
 
@@ -1479,7 +1492,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $length = 8;
 
@@ -1519,7 +1532,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $mock = $this->getMock(WritableStreamInterface::class);
 
@@ -1556,7 +1569,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $writable->write(StreamTest::WRITE_STRING);
+        new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $length = 8;
 
@@ -1595,7 +1608,7 @@ class StreamTest extends TestCase
 
         $string = "{'New String\0To Write'}\r\n";
 
-        $promise = $writable->write($string);
+        $promise = new Coroutine($writable->write($string));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1605,7 +1618,7 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1627,7 +1640,7 @@ class StreamTest extends TestCase
 
         $this->assertFalse($writable->isWritable());
 
-        $promise = $writable->write(StreamTest::WRITE_STRING);
+        $promise = new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1645,7 +1658,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $writable->write('');
+        $promise = new Coroutine($writable->write(''));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1655,7 +1668,7 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $promise = $writable->write('0');
+        $promise = new Coroutine($writable->write('0'));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1663,7 +1676,7 @@ class StreamTest extends TestCase
 
         $promise->done($callback);
 
-        $promise = $readable->read(1);
+        $promise = new Coroutine($readable->read(1));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1681,9 +1694,7 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $writable->end(StreamTest::WRITE_STRING);
-
-        $this->assertFalse($writable->isWritable());
+        $promise = new Coroutine($writable->end(StreamTest::WRITE_STRING));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1693,7 +1704,7 @@ class StreamTest extends TestCase
 
         $this->assertTrue($writable->isOpen());
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1715,7 +1726,8 @@ class StreamTest extends TestCase
         list($readable, $writable) = $this->createStreams();
 
         do { // Write until a pending promise is returned.
-            $promise = $writable->write(StreamTest::WRITE_STRING, StreamTest::TIMEOUT);
+            $promise = new Coroutine($writable->write(StreamTest::WRITE_STRING, StreamTest::TIMEOUT));
+            Loop\tick();
         } while (!$promise->isPending());
 
         $callback = $this->createCallback(1);
@@ -1732,7 +1744,8 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
+        Loop\tick();
 
         $this->assertTrue($promise->isPending());
 
@@ -1742,9 +1755,7 @@ class StreamTest extends TestCase
 
         $promise->done($callback);
 
-        $promise = $writable->end(StreamTest::WRITE_STRING);
-
-        $this->assertFalse($writable->isWritable());
+        $promise = new Coroutine($writable->end(StreamTest::WRITE_STRING));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1754,6 +1765,7 @@ class StreamTest extends TestCase
 
         Loop\run();
 
+        $this->assertFalse($writable->isWritable());
         $this->assertFalse($readable->isReadable());
     }
 
@@ -1764,7 +1776,8 @@ class StreamTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $promise = $readable->read();
+        $promise = new Coroutine($readable->read());
+        Loop\tick();
 
         $this->assertTrue($promise->isPending());
 
@@ -1774,9 +1787,7 @@ class StreamTest extends TestCase
 
         $promise->done($this->createCallback(0), $callback);
 
-        $promise = $writable->end();
-
-        $this->assertFalse($writable->isWritable());
+        $promise = new Coroutine($writable->end());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1786,6 +1797,7 @@ class StreamTest extends TestCase
 
         Loop\run();
 
+        $this->assertFalse($writable->isWritable());
         $this->assertFalse($readable->isReadable());
     }
 
@@ -1797,7 +1809,8 @@ class StreamTest extends TestCase
         list($readable, $writable) = $this->createStreams(StreamTest::HWM);
 
         do { // Write until a pending promise is returned.
-            $promise = $writable->write(StreamTest::WRITE_STRING);
+            $promise = new Coroutine($writable->write(StreamTest::WRITE_STRING));
+            Loop\tick(false);
         } while (!$promise->isPending());
 
         $writable->close();
@@ -1819,7 +1832,8 @@ class StreamTest extends TestCase
         list($readable, $writable) = $this->createStreams(StreamTest::HWM);
 
         do { // Write until a pending promise is returned.
-            $promise = $writable->write(StreamTest::WRITE_STRING);
+            $promise = new Coroutine($writable->write(StreamTest::WRITE_STRING));
+            Loop\tick(false);
         } while (!$promise->isPending());
 
         $buffer = '';
@@ -1828,7 +1842,7 @@ class StreamTest extends TestCase
             $buffer .= '1';
         }
 
-        $promise = $writable->write($buffer);
+        $promise = new Coroutine($writable->write($buffer));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1839,7 +1853,7 @@ class StreamTest extends TestCase
         $this->assertTrue($promise->isPending());
 
         while ($promise->isPending()) {
-            $readable->read(); // Pull more data out of the buffer.
+            (new Coroutine($readable->read()))->done(); // Pull more data out of the buffer.
             Loop\tick();
         }
     }
@@ -1853,10 +1867,11 @@ class StreamTest extends TestCase
         list($readable, $writable) = $this->createStreams(StreamTest::HWM);
 
         do { // Write until a pending promise is returned.
-            $promise = $writable->write(StreamTest::WRITE_STRING);
+            $promise = new Coroutine($writable->write(StreamTest::WRITE_STRING));
+            Loop\tick();
         } while (!$promise->isPending());
 
-        $promise = $writable->end(StreamTest::WRITE_STRING);
+        $promise = new Coroutine($writable->end(StreamTest::WRITE_STRING));
 
         $this->assertFalse($writable->isWritable());
 
@@ -1869,7 +1884,7 @@ class StreamTest extends TestCase
         $this->assertTrue($promise->isPending());
 
         while ($promise->isPending()) {
-            $readable->read(StreamTest::CHUNK_SIZE); // Pull more data out of the buffer.
+            (new Coroutine($readable->read()))->done(); // Pull more data out of the buffer.
             Loop\tick();
         }
 
@@ -1885,10 +1900,11 @@ class StreamTest extends TestCase
         list($readable, $writable) = $this->createStreams(StreamTest::HWM);
 
         do { // Write until a pending promise is returned.
-            $promise = $writable->write(StreamTest::WRITE_STRING);
+            $promise = new Coroutine($writable->write(StreamTest::WRITE_STRING));
+            Loop\tick();
         } while (!$promise->isPending());
 
-        $promise = $writable->write('');
+        $promise = new Coroutine($writable->write(''));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -1899,7 +1915,7 @@ class StreamTest extends TestCase
         $this->assertTrue($promise->isPending());
 
         while ($promise->isPending()) {
-            $readable->read(); // Pull more data out of the buffer.
+            (new Coroutine($readable->read()))->done(); // Pull more data out of the buffer.
             Loop\tick();
         }
     }
@@ -1912,11 +1928,12 @@ class StreamTest extends TestCase
         list($readable, $writable) = $this->createStreams(StreamTest::HWM);
 
         do { // Write until a pending promise is returned.
-            $promise = $writable->write(StreamTest::WRITE_STRING);
+            $promise = new Coroutine($writable->write(StreamTest::WRITE_STRING));
+            Loop\tick();
         } while (!$promise->isPending());
 
         // Extra write to ensure queue is not empty when write callback is called.
-        $promise = $writable->write(StreamTest::WRITE_STRING);
+        $promise = new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
         $readable->close(); // Close readable stream.
 

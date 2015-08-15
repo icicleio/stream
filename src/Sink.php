@@ -1,8 +1,6 @@
 <?php
 namespace Icicle\Stream;
 
-use Icicle\Promise;
-use Icicle\Promise\PromiseInterface;
 use Icicle\Stream\Exception\{
     InvalidArgumentError,
     OutOfBoundsException,
@@ -79,10 +77,10 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function read(int $length = 0, $byte = null, float $timeout = 0): PromiseInterface
+    public function read(int $length = 0, $byte = null, float $timeout = 0): \Generator
     {
         if (!$this->isReadable()) {
-            return Promise\reject(new UnreadableException('The stream is no longer readable.'));
+            throw new UnreadableException('The stream is no longer readable.');
         }
 
         $length = $this->parseLength($length);
@@ -97,7 +95,8 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
                 $data .= $char;
             } while ($char !== $byte && (0 === $length || ++$i < $length) && $this->iterator->valid());
 
-            return Promise\resolve($data);
+            yield $data;
+            return;
         }
 
         if (0 === $length) {
@@ -114,7 +113,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
 
         $this->iterator->seek($position);
 
-        return Promise\resolve($data);
+        yield $data;
     }
 
     /**
@@ -128,7 +127,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function write(string $data, float $timeout = 0): PromiseInterface
+    public function write(string $data, float $timeout = 0): \Generator
     {
         return $this->send($data, $timeout, false);
     }
@@ -136,22 +135,26 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function end(string $data = '', float $timeout = 0): PromiseInterface
+    public function end(string $data = '', float $timeout = 0): \Generator
     {
         return $this->send($data, $timeout, true);
     }
 
     /**
+     * @coroutine
+     *
      * @param string $data
      * @param float|int $timeout
      * @param bool $end
      *
-     * @return \Icicle\Promise\PromiseInterface
+     * @return \Generator
+     *
+     * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      */
-    protected function send(string $data, float $timeout = 0, bool $end = false): PromiseInterface
+    protected function send(string $data, float $timeout = 0, bool $end = false): \Generator
     {
         if (!$this->isWritable()) {
-            return Promise\reject(new UnwritableException('The stream is no longer writable.'));
+            throw new UnwritableException('The stream is no longer writable.');
         }
 
         if ($end) {
@@ -168,16 +171,16 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
 
         $this->iterator->seek($this->iterator->key() + $length);
 
-        return Promise\resolve($length);
+        yield $length;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function seek(int $offset, int $whence = SEEK_SET, float $timeout = 0): PromiseInterface
+    public function seek(int $offset, int $whence = SEEK_SET, float $timeout = 0): \Generator
     {
         if (!$this->isOpen()) {
-            return Promise\reject(new UnseekableException('The stream is no longer seekable.'));
+            throw new UnseekableException('The stream is no longer seekable.');
         }
 
         $offset = (int) $offset;
@@ -195,18 +198,16 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
                 break;
 
             default:
-                return Promise\reject(
-                    new InvalidArgumentError('Invalid value for whence. Use SEEK_SET, SEEK_CUR, or SEEK_END.')
-                );
+                throw new InvalidArgumentError('Invalid value for whence. Use SEEK_SET, SEEK_CUR, or SEEK_END.');
         }
 
         if (0 > $offset || $this->buffer->getLength() <= $offset) {
-            return Promise\reject(new OutOfBoundsException(sprintf('Invalid offset: %s.', $offset)));
+            throw new OutOfBoundsException(sprintf('Invalid offset: %s.', $offset));
         }
 
         $this->iterator->seek($offset);
 
-        return Promise\resolve($offset);
+        yield $offset;
     }
 
     /**

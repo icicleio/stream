@@ -1,8 +1,7 @@
 <?php
 namespace Icicle\Stream;
 
-use Icicle\Promise;
-use Icicle\Promise\{Deferred, PromiseInterface};
+use Icicle\Promise\Deferred;
 use Icicle\Stream\Exception\{BusyError, ClosedException, UnreadableException, UnwritableException};
 use Icicle\Stream\Structures\Buffer;
 
@@ -53,7 +52,7 @@ class Stream implements DuplexStreamInterface
     /**
      * @var \SplQueue|null
      */
-    private $deferredQueue;
+    private $queue;
     
     /**
      * @param int $hwm High water mark. If the internal buffer has more than $hwm bytes, writes to the stream will
@@ -65,7 +64,7 @@ class Stream implements DuplexStreamInterface
         $this->hwm = $this->parseLength($hwm);
 
         if (0 !== $this->hwm) {
-            $this->deferredQueue = new \SplQueue();
+            $this->queue = new \SplQueue();
         }
     }
 
@@ -96,15 +95,18 @@ class Stream implements DuplexStreamInterface
         $this->writable = false;
 
         if (null !== $this->deferred) {
-            $this->deferred->reject($exception ?: new ClosedException('The stream was unexpectedly closed.'));
-            $this->deferred = null;
+            $this->deferred->getPromise()->cancel(
+                $exception = $exception ?: new ClosedException('The stream was unexpectedly closed.')
+            );
         }
 
         if (0 !== $this->hwm) {
-            while (!$this->deferredQueue->isEmpty()) {
+            while (!$this->queue->isEmpty()) {
                 /** @var \Icicle\Promise\Deferred $deferred */
-                list( , $deferred) = $this->deferredQueue->shift();
-                $deferred->reject($exception ?: new ClosedException('The stream was unexpectedly closed.'));
+                $deferred = $this->queue->shift();
+                $deferred->getPromise()->cancel(
+                    $exception = $exception ?: new ClosedException('The stream was unexpectedly closed.')
+                );
             }
         }
     }
@@ -112,14 +114,14 @@ class Stream implements DuplexStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function read(int $length = 0, $byte = null, float $timeout = 0): PromiseInterface
+    public function read(int $length = 0, $byte = null, float $timeout = 0): \Generator
     {
         if (null !== $this->deferred) {
-            return Promise\reject(new BusyError('Already waiting on stream.'));
+            throw new BusyError('Already waiting to read from stream.');
         }
 
         if (!$this->isReadable()) {
-            return Promise\reject(new UnreadableException('The stream is no longer readable.'));
+            throw new UnreadableException('The stream is no longer readable.');
         }
 
         $this->length = $this->parseLength($length);
@@ -129,10 +131,10 @@ class Stream implements DuplexStreamInterface
             $data = $this->remove();
 
             if (0 !== $this->hwm && $this->buffer->getLength() <= $this->hwm) {
-                while (!$this->deferredQueue->isEmpty()) {
+                while (!$this->queue->isEmpty()) {
                     /** @var \Icicle\Promise\Deferred $deferred */
-                    list($length, $deferred) = $this->deferredQueue->shift();
-                    $deferred->resolve($length);
+                    $deferred = $this->queue->shift();
+                    $deferred->resolve();
                 }
             }
 
@@ -140,20 +142,22 @@ class Stream implements DuplexStreamInterface
                 $this->close();
             }
 
-            return Promise\resolve($data);
+            yield $data;
+            return;
         }
 
-        $this->deferred = new Deferred(function () {
-            $this->deferred = null;
-        });
-
+        $this->deferred = new Deferred();
         $promise = $this->deferred->getPromise();
 
         if (0 !== $timeout) {
             $promise = $promise->timeout($timeout, 'Reading from the stream timed out.');
         }
 
-        return $promise;
+        try {
+            yield $promise;
+        } finally {
+            $this->deferred = null;
+        }
     }
 
     /**
@@ -189,7 +193,7 @@ class Stream implements DuplexStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function write(string $data, float $timeout = 0): PromiseInterface
+    public function write(string $data, float $timeout = 0): \Generator
     {
         return $this->send($data, $timeout, false);
     }
@@ -197,12 +201,14 @@ class Stream implements DuplexStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function end(string $data = '', float $timeout = 0): PromiseInterface
+    public function end(string $data = '', float $timeout = 0): \Generator
     {
         return $this->send($data, $timeout, true);
     }
 
     /**
+     * @coroutine
+     *
      * @param string $data
      * @param float|int $timeout
      * @param bool $end
@@ -210,42 +216,50 @@ class Stream implements DuplexStreamInterface
      * @return \Icicle\Promise\PromiseInterface
      *
      * @resolve int Number of bytes written to the stream.
+     *
+     * @throws \Icicle\Stream\Exception\BusyError If the stream was already waiting to write.
+     * @throws \Icicle\Stream\Exception\UnwritableException If the stream is not longer writable.
      */
-    protected function send(string $data, float $timeout = 0, bool $end = false): PromiseInterface
+    protected function send(string $data, float $timeout = 0, bool $end = false): \Generator
     {
         if (!$this->isWritable()) {
-            return Promise\reject(new UnwritableException('The stream is no longer writable.'));
+            throw new UnwritableException('The stream is no longer writable.');
         }
 
         $this->buffer->push($data);
 
         if (null !== $this->deferred && !$this->buffer->isEmpty()) {
             $this->deferred->resolve($this->remove());
-            $this->deferred = null;
         }
 
         if ($end) {
-            $this->writable = false;
-
             if ($this->buffer->isEmpty()) {
                 $this->close();
+            } else {
+                $this->writable = false;
             }
         }
 
         if (0 !== $this->hwm && $this->buffer->getLength() > $this->hwm) {
-            $deferred = new Deferred(function (\Throwable $exception) {
-                $this->free($exception);
-            });
-            $this->deferredQueue->push([strlen($data), $deferred]);
+            $deferred = new Deferred();
+            $this->queue->push($deferred);
 
             $promise = $deferred->getPromise();
             if (0 !== $timeout) {
                 $promise = $promise->timeout($timeout, 'Writing to the stream timed out.');
             }
-            return $promise;
+
+            try {
+                yield $promise;
+            } catch (Exception $exception) {
+                if ($this->isOpen()) {
+                    $this->free($exception);
+                }
+                throw $exception;
+            }
         }
 
-        return Promise\resolve(strlen($data));
+        yield strlen($data);
     }
 
     /**
