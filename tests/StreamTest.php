@@ -5,7 +5,6 @@ use Exception;
 use Icicle\Coroutine\Coroutine;
 use Icicle\Loop;
 use Icicle\Loop\SelectLoop;
-use Icicle\Promise;
 use Icicle\Promise\Exception\TimeoutException;
 use Icicle\Stream\Exception\BusyError;
 use Icicle\Stream\Exception\ClosedException;
@@ -705,7 +704,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) {
                 $this->assertSame(StreamTest::WRITE_STRING, $data);
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $promise = new Coroutine($readable->pipe($mock));
@@ -760,18 +762,18 @@ class StreamTest extends TestCase
 
         new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $stream = $this->prophesize(WritableStreamInterface::class);
 
-        $mock->method('isWritable')
-            ->will($this->returnValue(true));
+        $stream->isWritable()->willReturn(true);
 
-        $mock->method('write')
-            ->will($this->returnValue(Promise\resolve(strlen(StreamTest::WRITE_STRING))));
+        $generator = function () {
+            yield strlen(StreamTest::WRITE_STRING);
+        };
+        $stream->write(StreamTest::WRITE_STRING, 0)->willReturn($generator());
 
-        $mock->expects($this->once())
-            ->method('end');
+        $stream->end()->shouldBeCalled();
 
-        $promise = new Coroutine($readable->pipe($mock, true));
+        $promise = new Coroutine($readable->pipe($stream->reveal(), true));
 
         $promise->done($this->createCallback(0), $this->createCallback(1));
 
@@ -802,7 +804,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($readable) {
                 $readable->close();
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->once())
@@ -837,7 +842,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) {
                 $this->assertSame(StreamTest::WRITE_STRING, $data);
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->never())
@@ -874,7 +882,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($readable) {
                 $readable->close();
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->never())
@@ -900,18 +911,18 @@ class StreamTest extends TestCase
 
         new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $stream = $this->prophesize(WritableStreamInterface::class);
 
-        $mock->method('isWritable')
-            ->will($this->returnValue(true));
+        $stream->isWritable()->willReturn(true);
 
-        $mock->method('write')
-            ->will($this->returnValue(Promise\resolve(strlen(StreamTest::WRITE_STRING))));
+        $generator = function () {
+            yield strlen(StreamTest::WRITE_STRING);
+        };
+        $stream->write(StreamTest::WRITE_STRING, 0)->willReturn($generator());
 
-        $mock->expects($this->once())
-            ->method('end');
+        $stream->end()->shouldBeCalled();
 
-        $promise = new Coroutine($readable->pipe($mock));
+        $promise = new Coroutine($readable->pipe($stream->reveal()));
 
         $exception = new Exception();
 
@@ -950,7 +961,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($length) {
                 $this->assertSame(substr(StreamTest::WRITE_STRING, 0, $length), $data);
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->never())
@@ -974,7 +988,10 @@ class StreamTest extends TestCase
         $mock->expects($this->exactly(2))
             ->method('write')
             ->will($this->returnCallback(function ($data) {
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->never())
@@ -1057,7 +1074,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($offset) {
                 $this->assertSame(substr(StreamTest::WRITE_STRING, 0, $offset + 1), $data);
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->once())
@@ -1096,7 +1116,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($offset) {
                 $this->assertSame(substr(StreamTest::WRITE_STRING, 0, $offset + 1), $data);
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $promise = new Coroutine($readable->pipe($mock, true, 0, $byte));
@@ -1155,7 +1178,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($offset) {
                 $this->assertSame(substr(StreamTest::WRITE_STRING, 0, $offset + 1), $data);
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $promise = new Coroutine($readable->pipe($mock, true, 0, $string));
@@ -1178,18 +1204,18 @@ class StreamTest extends TestCase
 
         new Coroutine($writable->write(StreamTest::WRITE_STRING));
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $stream = $this->prophesize(WritableStreamInterface::class);
 
-        $mock->method('isWritable')
-            ->will($this->returnValue(true));
+        $stream->isWritable()->willReturn(true);
 
-        $mock->method('write')
-            ->will($this->returnValue(Promise\resolve(strlen(StreamTest::WRITE_STRING))));
+        $generator = function () {
+            yield strlen(StreamTest::WRITE_STRING);
+        };
+        $stream->write(StreamTest::WRITE_STRING, 0)->willReturn($generator());
 
-        $mock->expects($this->once())
-            ->method('end');
+        $stream->end()->shouldBeCalled();
 
-        $promise = new Coroutine($readable->pipe($mock, true, 0, '!'));
+        $promise = new Coroutine($readable->pipe($stream->reveal(), true, 0, '!'));
 
         $promise->done($this->createCallback(0), $this->createCallback(1));
 
@@ -1220,7 +1246,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($readable) {
                 $readable->close();
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->once())
@@ -1255,7 +1284,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) {
                 $this->assertSame(StreamTest::WRITE_STRING, $data);
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->never())
@@ -1292,7 +1324,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($readable) {
                 $readable->close();
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->never())
@@ -1331,7 +1366,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($length) {
                 $this->assertSame(substr(StreamTest::WRITE_STRING, 0, $length), $data);
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->never())
@@ -1356,7 +1394,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($offset, $length) {
                 $this->assertSame(substr(StreamTest::WRITE_STRING, $length, $offset - $length + 1), $data);
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->never())
@@ -1393,10 +1434,7 @@ class StreamTest extends TestCase
             }));
 
         $mock->expects($this->once())
-            ->method('write')
-            ->will($this->returnCallback(function ($data) {
-                return Promise\resolve(strlen($data));
-            }));
+            ->method('write');
 
         $mock->expects($this->never())
             ->method('end');
@@ -1466,7 +1504,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) {
                 $this->assertSame(StreamTest::WRITE_STRING, $data);
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->never())
@@ -1504,7 +1545,10 @@ class StreamTest extends TestCase
         $mock->expects($this->once())
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($length) {
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->never())
@@ -1543,7 +1587,10 @@ class StreamTest extends TestCase
             ->method('write')
             ->will($this->returnCallback(function ($data) {
                 $this->assertSame(StreamTest::WRITE_STRING, $data);
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->never())
@@ -1581,7 +1628,10 @@ class StreamTest extends TestCase
         $mock->expects($this->once())
             ->method('write')
             ->will($this->returnCallback(function ($data) use ($length) {
-                return Promise\resolve(strlen($data));
+                $generator = function () use ($data) {
+                    yield strlen($data);
+                };
+                return $generator();
             }));
 
         $mock->expects($this->never())
@@ -1765,7 +1815,7 @@ class StreamTest extends TestCase
 
         Loop\run();
 
-        $this->assertFalse($writable->isWritable());
+
         $this->assertFalse($readable->isReadable());
     }
 

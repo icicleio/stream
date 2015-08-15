@@ -3,18 +3,20 @@
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use Icicle\Coroutine\Coroutine;
 use Icicle\Loop;
+use Icicle\Stream\DuplexStreamInterface;
 use Icicle\Stream\Stream;
 
-$stream = new Stream();
+$generator = function (DuplexStreamInterface $stream) {
+    yield $stream->write("This is just a test.\nThis will not be read.");
 
-$stream
-    ->write("This is just a test.\nThis will not be read.")
-    ->then(function () use ($stream) {
-        return $stream->read(null, "\n");
-    })
-    ->then(function ($data) {
-        echo $data; // Echos "This is just a test."
-    });
+    $data = (yield $stream->read(0, "\n"));
+
+    echo $data; // Echoes "This is just a test."
+};
+
+$stream = new Stream();
+$coroutine = new Coroutine($generator($stream));
 
 Loop\run();
