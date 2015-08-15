@@ -78,7 +78,7 @@ trait PipeTrait
                 && (null === $byte || $data[$count - 1] !== $byte)
                 && (0 === $length || 0 < $length -= $count)
             );
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             if ($end && $stream->isWritable()) {
                 yield from $stream->end();
             }

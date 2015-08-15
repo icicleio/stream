@@ -250,7 +250,7 @@ class Stream implements DuplexStreamInterface
 
             try {
                 yield $promise;
-            } catch (Exception $exception) {
+            } catch (\Throwable $exception) {
                 if ($this->isOpen()) {
                     $this->free($exception);
                 }
