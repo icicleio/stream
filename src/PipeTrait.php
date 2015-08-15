@@ -10,11 +10,13 @@ trait PipeTrait
     /**
      * @see \Icicle\Stream\ReadableStreamInterface::read()
      *
+     * @coroutine
+     *
      * @param int $length
      * @param string|int|null $byte
      * @param float|int $timeout
      *
-     * @return \Icicle\Promise\PromiseInterface
+     * @return \Generator
      */
     abstract public function read($length = 0, $byte = null, $timeout = 0);
 
@@ -40,11 +42,11 @@ trait PipeTrait
      *
      * @resolve int
      *
-     * @reject \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
-     * @reject \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
-     * @reject \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
-     * @reject \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @reject \Icicle\Promise\Exception\TimeoutException If the operation times out.
+     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
+     * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
+     * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function pipe(WritableStreamInterface $stream, $end = true, $length = 0, $byte = null, $timeout = 0)
     {
@@ -70,10 +72,15 @@ trait PipeTrait
                 && (null === $byte || $data[$count - 1] !== $byte)
                 && (0 === $length || 0 < $length -= $count)
             );
-        } finally {
+        } catch (\Exception $exception) {
             if ($end && $stream->isWritable()) {
-                $stream->end();
+                yield $stream->end();
             }
+            throw $exception;
+        }
+
+        if ($end && $stream->isWritable()) {
+            yield $stream->end();
         }
 
         yield $bytes;

@@ -1,7 +1,9 @@
 <?php
 namespace Icicle\Tests\Stream;
 
+use Icicle\Coroutine\Coroutine;
 use Icicle\Loop;
+use Icicle\Loop\SelectLoop;
 use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\OutOfBoundsException;
 use Icicle\Stream\Exception\UnreadableException;
@@ -11,11 +13,11 @@ use Icicle\Stream\Sink;
 
 class SinkTest extends TestCase
 {
-    public function tearDown()
+    public function setUp()
     {
-        Loop\clear();
+        Loop\loop(new SelectLoop());
     }
-    
+
     /**
      * @return \Icicle\Stream\Sink
      */
@@ -31,7 +33,7 @@ class SinkTest extends TestCase
         $this->assertFalse($sink->isReadable());
         $this->assertSame(0, $sink->getLength());
 
-        $promise = $sink->read();
+        $promise = new Coroutine($sink->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -48,7 +50,7 @@ class SinkTest extends TestCase
 
         $this->assertTrue($sink->isWritable());
 
-        $promise = $sink->write(StreamTest::WRITE_STRING);
+        $promise = new Coroutine($sink->write(StreamTest::WRITE_STRING));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -70,14 +72,15 @@ class SinkTest extends TestCase
      */
     public function testWriteThenSeekThenRead($sink)
     {
-        $promise = $sink->seek(0);
+
+        $promise = new Coroutine($sink->seek(0));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
         $this->assertSame(0, $sink->tell());
 
-        $promise = $sink->read();
+        $promise = new Coroutine($sink->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -97,15 +100,16 @@ class SinkTest extends TestCase
      */
     public function testReadWithLength($sink)
     {
+
         $length = 10;
 
-        $promise = $sink->seek(0);
+        $promise = new Coroutine($sink->seek(0));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
 
-        $promise = $sink->read($length);
+        $promise = new Coroutine($sink->read($length));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -126,15 +130,16 @@ class SinkTest extends TestCase
      */
     public function testReadWithLengthLongerThanSinkLength($sink)
     {
+
         $length = StreamTest::CHUNK_SIZE;
 
-        $promise = $sink->seek(0);
+        $promise = new Coroutine($sink->seek(0));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
 
-        $promise = $sink->read($length);
+        $promise = new Coroutine($sink->read($length));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -155,13 +160,14 @@ class SinkTest extends TestCase
      */
     public function testReadWithZeroLength($sink)
     {
-        $promise = $sink->seek(0);
+
+        $promise = new Coroutine($sink->seek(0));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
 
-        $promise = $sink->read(0);
+        $promise = new Coroutine($sink->read(0));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -182,13 +188,14 @@ class SinkTest extends TestCase
      */
     public function testReadWithInvalidLength($sink)
     {
-        $promise = $sink->seek(0);
+
+        $promise = new Coroutine($sink->seek(0));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
 
-        $promise = $sink->read(-1);
+        $promise = new Coroutine($sink->read(-1));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -209,16 +216,17 @@ class SinkTest extends TestCase
      */
     public function testReadTo($sink)
     {
+
         $position = 10;
         $byte = substr(StreamTest::WRITE_STRING, $position, 1);
 
-        $promise = $sink->seek(0);
+        $promise = new Coroutine($sink->seek(0));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
 
-        $promise = $sink->read(0, $byte);
+        $promise = new Coroutine($sink->read(0, $byte));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -239,11 +247,12 @@ class SinkTest extends TestCase
      */
     public function testSeekThenWrite($sink)
     {
-        $promise = $sink->seek(0);
+
+        $promise = new Coroutine($sink->seek(0));
 
         Loop\run();
 
-        $promise = $sink->write(StreamTest::WRITE_STRING);
+        $promise = new Coroutine($sink->write(StreamTest::WRITE_STRING));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -255,14 +264,14 @@ class SinkTest extends TestCase
 
         $this->assertFalse($promise->isPending());
 
-        $promise = $sink->seek(0);
+        $promise = new Coroutine($sink->seek(0));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
         $this->assertSame(0, $sink->tell());
 
-        $promise = $sink->read();
+        $promise = new Coroutine($sink->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -282,24 +291,24 @@ class SinkTest extends TestCase
 
         $sink = $this->createSink();
 
-        $sink->write(StreamTest::WRITE_STRING);
+        new Coroutine($sink->write(StreamTest::WRITE_STRING));
 
         Loop\run();
 
-        $promise = $sink->write($string);
+        $promise = new Coroutine($sink->write($string));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
 
-        $promise = $sink->seek(0);
+        $promise = new Coroutine($sink->seek(0));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
         $this->assertSame(0, $sink->tell());
 
-        $promise = $sink->read();
+        $promise = new Coroutine($sink->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -316,7 +325,7 @@ class SinkTest extends TestCase
     {
         $sink = $this->createSink();
 
-        $promise = $sink->write('');
+        $promise = new Coroutine($sink->write(''));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -340,18 +349,18 @@ class SinkTest extends TestCase
 
         $sink = $this->createSink();
 
-        $sink->write(StreamTest::WRITE_STRING);
+        new Coroutine($sink->write(StreamTest::WRITE_STRING));
 
         Loop\run();
 
-        $promise = $sink->seek($position);
+        $promise = new Coroutine($sink->seek($position));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
         $this->assertSame($position, $sink->tell());
 
-        $promise = $sink->read();
+        $promise = new Coroutine($sink->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -373,18 +382,18 @@ class SinkTest extends TestCase
 
         $sink = $this->createSink();
 
-        $sink->write(StreamTest::WRITE_STRING);
+        new Coroutine($sink->write(StreamTest::WRITE_STRING));
 
         Loop\run();
 
-        $promise = $sink->seek($position);
+        $promise = new Coroutine($sink->seek($position));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
         $this->assertSame($position, $sink->tell());
 
-        $promise = $sink->write(StreamTest::WRITE_STRING);
+        $promise = new Coroutine($sink->write(StreamTest::WRITE_STRING));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -396,14 +405,14 @@ class SinkTest extends TestCase
 
         $this->assertSame($position + strlen(StreamTest::WRITE_STRING), $sink->tell());
 
-        $promise = $sink->seek(0);
+        $promise = new Coroutine($sink->seek(0));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
         $this->assertSame(0, $sink->tell());
 
-        $promise = $sink->read();
+        $promise = new Coroutine($sink->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -428,25 +437,23 @@ class SinkTest extends TestCase
 
         $sink = $this->createSink();
 
-        $sink->write(StreamTest::WRITE_STRING);
+        new Coroutine($sink->write(StreamTest::WRITE_STRING));
 
         Loop\run();
 
-        $promise = $sink->seek(-$position, SEEK_CUR);
+        $promise = new Coroutine($sink->seek(-$position, SEEK_CUR));
 
-        $this->assertFalse($promise->isPending());
+        Loop\run();
+
         $this->assertSame(strlen(StreamTest::WRITE_STRING) - $position, $sink->tell());
 
-        Loop\run();
-
-        $promise = $sink->seek(-$position, SEEK_CUR);
+        $promise = new Coroutine($sink->seek(-$position, SEEK_CUR));
 
         Loop\run();
 
-        $this->assertFalse($promise->isPending());
         $this->assertSame(strlen(StreamTest::WRITE_STRING) - $position * 2, $sink->tell());
 
-        $promise = $sink->read();
+        $promise = new Coroutine($sink->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -465,18 +472,18 @@ class SinkTest extends TestCase
 
         $sink = $this->createSink();
 
-        $sink->write(StreamTest::WRITE_STRING);
+        new Coroutine($sink->write(StreamTest::WRITE_STRING));
 
         Loop\run();
 
-        $promise = $sink->seek(-$position, SEEK_END);
+        $promise = new Coroutine($sink->seek(-$position, SEEK_END));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
         $this->assertSame(strlen(StreamTest::WRITE_STRING) - $position, $sink->tell());
 
-        $promise = $sink->read();
+        $promise = new Coroutine($sink->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -493,11 +500,11 @@ class SinkTest extends TestCase
     {
         $sink = $this->createSink();
 
-        $sink->write(StreamTest::WRITE_STRING);
+        new Coroutine($sink->write(StreamTest::WRITE_STRING));
 
         Loop\run();
 
-        $promise = $sink->seek(-1);
+        $promise = new Coroutine($sink->seek(-1));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -507,7 +514,7 @@ class SinkTest extends TestCase
 
         Loop\run();
 
-        $promise = $sink->seek($sink->getLength());
+        $promise = new Coroutine($sink->seek($sink->getLength()));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -527,7 +534,8 @@ class SinkTest extends TestCase
      */
     public function testSeekWithInvalidWhence($sink)
     {
-        $promise = $sink->seek(0, -1);
+
+        $promise = new Coroutine($sink->seek(0, -1));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -545,9 +553,10 @@ class SinkTest extends TestCase
      */
     public function testSeekOnClosedSink($sink)
     {
+
         $sink->close();
 
-        $promise = $sink->seek(0);
+        $promise = new Coroutine($sink->seek(0));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -565,15 +574,14 @@ class SinkTest extends TestCase
     {
         $sink = $this->createSink();
 
-        $promise = $sink->end(StreamTest::WRITE_STRING);
-
-        $this->assertFalse($sink->isWritable());
+        $promise = new Coroutine($sink->end(StreamTest::WRITE_STRING));
 
         Loop\run();
 
+        $this->assertFalse($sink->isWritable());
         $this->assertFalse($promise->isPending());
 
-        $promise = $sink->seek(0);
+        $promise = new Coroutine($sink->seek(0));
 
         Loop\run();
 
@@ -581,7 +589,7 @@ class SinkTest extends TestCase
         $this->assertSame(0, $sink->tell());
         $this->assertTrue($sink->isReadable());
 
-        $promise = $sink->read();
+        $promise = new Coroutine($sink->read());
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
@@ -603,7 +611,8 @@ class SinkTest extends TestCase
      */
     public function testWriteToEnded($sink)
     {
-        $promise = $sink->write(StreamTest::WRITE_STRING);
+
+        $promise = new Coroutine($sink->write(StreamTest::WRITE_STRING));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
