@@ -67,12 +67,12 @@ trait PipeTrait
 
         try {
             do {
-                $data = yield $this->read($length, $byte, $timeout);
+                $data = yield from $this->read($length, $byte, $timeout);
 
                 $count = strlen($data);
                 $bytes += $count;
 
-                yield $stream->write($data, $timeout);
+                yield from $stream->write($data, $timeout);
             } while ($this->isReadable()
                 && $stream->isWritable()
                 && (null === $byte || $data[$count - 1] !== $byte)
@@ -80,13 +80,13 @@ trait PipeTrait
             );
         } catch (\Exception $exception) {
             if ($end && $stream->isWritable()) {
-                yield $stream->end();
+                yield from $stream->end();
             }
             throw $exception;
         }
 
         if ($end && $stream->isWritable()) {
-            yield $stream->end();
+            yield from $stream->end();
         }
 
         return $bytes;
