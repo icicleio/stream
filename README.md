@@ -82,7 +82,7 @@ All other stream interfaces extend this basic interface.
 #### isOpen()
 
 ```php
-bool StreamInterface::isOpen()
+StreamInterface::isOpen(): bool
 ```
 
 Determines if the stream is still open. A closed stream will be neither readable or writable.
@@ -92,7 +92,7 @@ Determines if the stream is still open. A closed stream will be neither readable
 #### close()
 
 ```php
-void StreamInterface::close()
+StreamInterface::close(): void
 ```
 
 Closes the stream. Once closed, a stream will no longer be readable or writable.
