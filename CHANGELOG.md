@@ -1,9 +1,16 @@
 # Changelog
 
+### v0.2.1
+
+- Bug Fixes
+    - Fixed bug when seeking to the end of the stream in `\Icicle\Stream\Sink`.
+
 ### v0.2.0
 
 - Changes
     - Stream methods now are coroutines instead of returning promises. This change was made to provide a more consistent API across packages, improve performance, and support `yield from` in PHP 7.
+
+---
 
 ### v0.1.1
 
