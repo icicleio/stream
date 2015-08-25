@@ -199,7 +199,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
                 throw new InvalidArgumentError('Invalid value for whence. Use SEEK_SET, SEEK_CUR, or SEEK_END.');
         }
 
-        if (0 > $offset || $this->buffer->getLength() <= $offset) {
+        if (0 > $offset || $this->buffer->getLength() < $offset) {
             throw new OutOfBoundsException(sprintf('Invalid offset: %s.', $offset));
         }
 
