@@ -514,7 +514,7 @@ class SinkTest extends TestCase
 
         Loop\run();
 
-        $promise = new Coroutine($sink->seek($sink->getLength()));
+        $promise = new Coroutine($sink->seek($sink->getLength() + 1));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
