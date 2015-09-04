@@ -104,7 +104,7 @@ Closes the stream. Once closed, a stream will no longer be readable or writable.
 ```php
 ReadableStreamInterface::read(
     int $length = 0,
-    string|int|null $byte = null,
+    string|null $byte = null,
     float $timeout = 0
 ): Generator
 ```
@@ -128,7 +128,7 @@ ReadableStreamInterface::pipe(
     WritableStreamInterface $stream,
     bool $end = true,
     int $length = 0,
-    string|int|null $byte = null
+    string|null $byte = null
     float $timeout = 0
 ): Generator
 ```

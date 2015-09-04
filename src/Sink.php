@@ -77,14 +77,19 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function read(int $length = 0, $byte = null, float $timeout = 0): \Generator
+    public function read(int $length = 0, string $byte = null, float $timeout = 0): \Generator
     {
         if (!$this->isReadable()) {
             throw new UnreadableException('The stream is no longer readable.');
         }
 
-        $length = $this->parseLength($length);
-        $byte = $this->parseByte($byte);
+        $length = (int) $length;
+        if (0 > $length) {
+            $length = 0;
+        }
+
+        $byte = (string) $byte;
+        $byte = strlen($byte) ? $byte[0] : null;
 
         if (null !== $byte) {
             $data = '';
@@ -204,7 +209,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
                 throw new InvalidArgumentError('Invalid value for whence. Use SEEK_SET, SEEK_CUR, or SEEK_END.');
         }
 
-        if (0 > $offset || $this->buffer->getLength() <= $offset) {
+        if (0 > $offset || $this->buffer->getLength() < $offset) {
             throw new OutOfBoundsException(sprintf('Invalid offset: %s.', $offset));
         }
 

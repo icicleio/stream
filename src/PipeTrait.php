@@ -6,8 +6,6 @@ use Icicle\Stream\Exception\UnwritableException;
 
 trait PipeTrait
 {
-    use ParserTrait;
-
     /**
      * @see \Icicle\Stream\ReadableStreamInterface::read()
      *
@@ -53,15 +51,20 @@ trait PipeTrait
         WritableStreamInterface $stream,
         bool $end = true,
         int $length = 0,
-        $byte = null,
+        string $byte = null,
         float $timeout = 0
     ): \Generator {
         if (!$stream->isWritable()) {
             throw new UnwritableException('The stream is not writable.');
         }
 
-        $length = $this->parseLength($length);
-        $byte = $this->parseByte($byte);
+        $length = (int) $length;
+        if (0 > $length) {
+            $length = 0;
+        }
+
+        $byte = (string) $byte;
+        $byte = strlen($byte) ? $byte[0] : null;
 
         $bytes = 0;
 

@@ -23,7 +23,7 @@ interface ReadableStreamInterface extends StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function read(int $length = 0, $byte = null, float $timeout = 0): \Generator;
+    public function read(int $length = 0, string $byte = null, float $timeout = 0): \Generator;
 
     /**
      * Determines if the stream is still readable. A stream being readable does not mean there is data immediately
@@ -63,7 +63,7 @@ interface ReadableStreamInterface extends StreamInterface
         WritableStreamInterface $stream,
         bool $end = true,
         int $length = 0,
-        $byte = null,
+        string $byte = null,
         float $timeout = 0
     ): \Generator;
 }
