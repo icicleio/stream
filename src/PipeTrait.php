@@ -5,8 +5,6 @@ use Icicle\Stream\Exception\UnwritableException;
 
 trait PipeTrait
 {
-    use ParserTrait;
-
     /**
      * @see \Icicle\Stream\ReadableStreamInterface::read()
      *
@@ -54,8 +52,13 @@ trait PipeTrait
             throw new UnwritableException('The stream is not writable.');
         }
 
-        $length = $this->parseLength($length);
-        $byte = $this->parseByte($byte);
+        $length = (int) $length;
+        if (0 > $length) {
+            $length = 0;
+        }
+
+        $byte = (string) $byte;
+        $byte = strlen($byte) ? $byte[0] : null;
 
         $bytes = 0;
 

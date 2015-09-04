@@ -65,7 +65,10 @@ class Stream implements DuplexStreamInterface
     public function __construct($hwm = 0)
     {
         $this->buffer = new Buffer();
-        $this->hwm = $this->parseLength($hwm);
+        $this->hwm = (int) $hwm;
+        if (0 > $this->hwm) {
+            $this->hwm = 0;
+        }
 
         if (0 !== $this->hwm) {
             $this->queue = new \SplQueue();
@@ -128,8 +131,13 @@ class Stream implements DuplexStreamInterface
             throw new UnreadableException('The stream is no longer readable.');
         }
 
-        $this->length = $this->parseLength($length);
-        $this->byte = $this->parseByte($byte);
+        $this->length = (int) $length;
+        if (0 > $this->length) {
+            $this->length = 0;
+        }
+
+        $this->byte = (string) $byte;
+        $this->byte = strlen($this->byte) ? $this->byte[0] : null;
 
         if (!$this->buffer->isEmpty()) {
             $data = $this->remove();

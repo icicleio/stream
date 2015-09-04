@@ -300,30 +300,6 @@ class StreamTest extends TestCase
     }
 
     /**
-     * @depends testRead
-     */
-    public function testReadToIntegerByte()
-    {
-        list($readable, $writable) = $this->createStreams();
-
-        new Coroutine($writable->write(StreamTest::WRITE_STRING));
-
-        $offset = 5;
-        $byte = unpack('C', substr(StreamTest::WRITE_STRING, $offset, 1));
-        $byte = $byte[1];
-
-        $promise = new Coroutine($readable->read(0, $byte));
-
-        $callback = $this->createCallback(1);
-        $callback->method('__invoke')
-            ->with($this->identicalTo(substr(StreamTest::WRITE_STRING, 0, $offset + 1)));
-
-        $promise->done($callback);
-
-        Loop\run();
-    }
-
-    /**
      * @depends testReadTo
      */
     public function testReadToMultibyteString()
@@ -1078,45 +1054,6 @@ class StreamTest extends TestCase
             }));
 
         $promise = new Coroutine($readable->pipe($mock, true, 0, $char));
-
-        $callback = $this->createCallback(1);
-        $callback->method('__invoke')
-            ->with($this->identicalTo($offset + 1));
-
-        $promise->done($callback);
-
-        Loop\run();
-    }
-
-    /**
-     * @depends testPipeTo
-     */
-    public function testPipeToIntegerByte()
-    {
-        list($readable, $writable) = $this->createStreams();
-
-        new Coroutine($writable->write(StreamTest::WRITE_STRING));
-
-        $offset = 10;
-        $byte = unpack('C', substr(StreamTest::WRITE_STRING, $offset, 1));
-        $byte = $byte[1];
-
-        $mock = $this->getMock(WritableStreamInterface::class);
-
-        $mock->method('isWritable')
-            ->will($this->returnValue(true));
-
-        $mock->expects($this->once())
-            ->method('write')
-            ->will($this->returnCallback(function ($data) use ($offset) {
-                $this->assertSame(substr(StreamTest::WRITE_STRING, 0, $offset + 1), $data);
-                $generator = function () use ($data) {
-                    yield strlen($data);
-                };
-                return $generator();
-            }));
-
-        $promise = new Coroutine($readable->pipe($mock, true, 0, $byte));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
