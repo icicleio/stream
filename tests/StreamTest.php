@@ -896,7 +896,7 @@ class StreamTest extends TestCase
         };
         $stream->write(StreamTest::WRITE_STRING, 0)->willReturn($generator());
 
-        $stream->end()->shouldBeCalled();
+        $stream->end()->shouldNotBeCalled();
 
         $promise = new Coroutine($readable->pipe($stream->reveal()));
 
