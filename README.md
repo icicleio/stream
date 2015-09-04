@@ -28,7 +28,7 @@ You can also manually edit `composer.json` to add this library as a project requ
 // composer.json
 {
     "require": {
-        "icicleio/stream": "^0.2"
+        "icicleio/stream": "^0.3"
     }
 }
 ```
