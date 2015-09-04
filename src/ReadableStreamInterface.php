@@ -8,7 +8,7 @@ interface ReadableStreamInterface extends StreamInterface
      *
      * @param int $length Max number of bytes to read. Fewer bytes may be returned. Use 0 to read as much data
      *     as possible.
-     * @param string|int|null $byte Reading will stop once the given byte occurs in the stream. Note that reading may
+     * @param string|null $byte Reading will stop once the given byte occurs in the stream. Note that reading may
      *     stop before the byte is found in the stream. The search byte will be included in the resolving string.
      *     Use null to effectively ignore this parameter and read any bytes.
      * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
@@ -42,7 +42,7 @@ interface ReadableStreamInterface extends StreamInterface
      * @param bool $end Set to true to automatically call end() on the writable stream when piping ends, either due
      *     to the readable stream closing or reaching the given length or byte.
      * @param int $length If not null, only $length bytes will be piped.
-     * @param string|int $byte Piping will stop once the given byte occurs in the stream. The search character will
+     * @param string|null $byte Piping will stop once the given byte occurs in the stream. The search character will
      *     be piped to the writable stream string. Use null to ignore this parameter and pipe all bytes.
      * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
      *     if no data is received. Use 0 for no timeout.
