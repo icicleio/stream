@@ -83,12 +83,10 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
             throw new UnreadableException('The stream is no longer readable.');
         }
 
-        $length = (int) $length;
         if (0 > $length) {
             $length = 0;
         }
 
-        $byte = (string) $byte;
         $byte = strlen($byte) ? $byte[0] : null;
 
         if (null !== $byte) {

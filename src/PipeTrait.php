@@ -58,12 +58,10 @@ trait PipeTrait
             throw new UnwritableException('The stream is not writable.');
         }
 
-        $length = (int) $length;
         if (0 > $length) {
             $length = 0;
         }
 
-        $byte = (string) $byte;
         $byte = strlen($byte) ? $byte[0] : null;
 
         $bytes = 0;

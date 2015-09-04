@@ -127,13 +127,12 @@ class Stream implements DuplexStreamInterface
             throw new UnreadableException('The stream is no longer readable.');
         }
 
-        $this->length = (int) $length;
+        $this->length = $length;
         if (0 > $this->length) {
             $this->length = 0;
         }
 
-        $this->byte = (string) $byte;
-        $this->byte = strlen($this->byte) ? $this->byte[0] : null;
+        $this->byte = strlen($byte) ? $byte[0] : null;
 
         if (!$this->buffer->isEmpty()) {
             $data = $this->remove();
