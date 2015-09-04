@@ -34,7 +34,7 @@ trait PipeTrait
      * @param \Icicle\Stream\WritableStreamInterface $stream
      * @param bool $end
      * @param int $length
-     * @param string|int|null $byte
+     * @param string|null $byte
      * @param float|int $timeout
      *
      * @return \Generator
