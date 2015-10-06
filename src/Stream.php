@@ -69,10 +69,11 @@ class Stream implements DuplexStreamInterface
     /**
      * @param int $hwm High water mark. If the internal buffer has more than $hwm bytes, writes to the stream will
      *     return pending promises until the data is consumed.
+     * @param string $data
      */
-    public function __construct($hwm = 0)
+    public function __construct($hwm = 0, $data = '')
     {
-        $this->buffer = new Buffer();
+        $this->buffer = new Buffer($data);
         $this->hwm = (int) $hwm;
         if (0 > $this->hwm) {
             $this->hwm = 0;

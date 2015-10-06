@@ -47,11 +47,13 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     private $iterator;
 
     /**
-     * Initializes empty sink.
+     * Initializes a sink with the given data.
+     *
+     * @param string $data
      */
-    public function __construct()
+    public function __construct($data = '')
     {
-        $this->buffer = new Buffer();
+        $this->buffer = new Buffer($data);
         $this->iterator = $this->buffer->getIterator();
     }
 
