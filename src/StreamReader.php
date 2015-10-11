@@ -10,7 +10,10 @@
 namespace Icicle\Stream;
 
 /**
- * Reads characters from a stream in a particular encoding.
+ * Reads characters from a stream.
+ *
+ * The stream is read in a UTF-8 aware manner and text is assumed to be encoded
+ * in UTF-8.
  */
 class StreamReader
 {
@@ -25,17 +28,11 @@ class StreamReader
     private $buffer = [];
 
     /**
-     * @var string The character encoding to read in.
-     */
-    private $encoding;
-
-    /**
      * Creates a new stream reader for a given stream.
      *
      * @param \Icicle\Stream\ReadableStreamInterface $stream The stream to read from.
-     * @param string The character encoding to use.
      */
-    public function __construct(ReadableStreamInterface $stream, $encoding = 'UTF-8')
+    public function __construct(ReadableStreamInterface $stream)
     {
         $this->stream = $stream;
         $this->encoding = $encoding;
@@ -113,14 +110,17 @@ class StreamReader
 
         // Read the specified number of characters.
         for (; $this->stream->isReadable() && $length > 0; --$length) {
-            $wchar = "";
+            // Read the leading byte.
+            $char = (yield $this->stream->read(1));
+            $leadByte = ord($char);
 
-            // Read byte by byte until we have a whole character.
-            do {
-                $wchar .= (yield $this->stream->read(1));
-            } while (!mb_check_encoding($wchar, $this->encoding));
+            // Read the remaining bytes for the character.
+            while (($leadByte & 0b11000000) === 0b11000000) {
+                $char .= (yield $this->stream->read(1));
+                $leadByte = $leadByte << 1;
+            }
 
-            $buffer .= $wchar;
+            $buffer .= $char;
         }
 
         yield $buffer;
@@ -136,7 +136,7 @@ class StreamReader
      *
      * @return \Generator
      *
-     * @resolve string
+     * @resolve string A line of text read from the stream.
      */
     public function readLine()
     {
