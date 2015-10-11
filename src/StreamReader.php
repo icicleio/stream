@@ -35,7 +35,6 @@ class StreamReader
     public function __construct(ReadableStreamInterface $stream)
     {
         $this->stream = $stream;
-        $this->encoding = $encoding;
     }
 
     /**
@@ -45,7 +44,7 @@ class StreamReader
      */
     public function getStream()
     {
-        return $stream;
+        return $this->stream;
     }
 
     /**
