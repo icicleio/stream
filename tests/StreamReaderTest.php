@@ -50,7 +50,7 @@ class StreamReaderTest extends TestCase
             $stream = new Stream();
             $reader = new StreamReader($stream);
 
-            yield $stream->write("hello");
+            yield $stream->end("hello");
 
             $this->assertEquals("h", (yield $reader->read(1)));
         })->done();
@@ -64,7 +64,7 @@ class StreamReaderTest extends TestCase
             $stream = new Stream();
             $reader = new StreamReader($stream);
 
-            yield $stream->write("õwen");
+            yield $stream->end("õwen");
 
             $this->assertEquals("õ", (yield $reader->read(1)));
         })->done();
@@ -78,7 +78,7 @@ class StreamReaderTest extends TestCase
             $stream = new Stream();
             $reader = new StreamReader($stream);
 
-            yield $stream->write("In theory, there is no difference between theory and practice.\nBut, in practice, there is.\n");
+            yield $stream->end("In theory, there is no difference between theory and practice.\nBut, in practice, there is.\n");
 
             $this->assertEquals("In theory, there is no difference between theory and practice.\n", (yield $reader->readLine()));
         })->done();
@@ -93,7 +93,7 @@ class StreamReaderTest extends TestCase
             $reader = new StreamReader($stream);
 
             $string = "In theory, there is no difference between theory and practice.\nBut, in practice, there is.\n";
-            yield $stream->write($string);
+            yield $stream->end($string);
 
             $this->assertEquals($string, (yield $reader->readAll()));
             $this->assertFalse($reader->isOpen());
@@ -108,7 +108,7 @@ class StreamReaderTest extends TestCase
             $stream = new Stream();
             $reader = new StreamReader($stream);
 
-            yield $stream->write("õwen");
+            yield $stream->end("õwen");
 
             $this->assertEquals("õ", (yield $reader->peek(1)));
             $this->assertEquals("õ", (yield $reader->read(1)));
@@ -123,7 +123,7 @@ class StreamReaderTest extends TestCase
             $stream = new Stream();
             $reader = new StreamReader($stream);
 
-            yield $stream->write("In theory, there is no difference between theory and practice.\nBut, in practice, there is.\n");
+            yield $stream->end("In theory, there is no difference between theory and practice.\nBut, in practice, there is.\n");
             yield $reader->peek(10);
 
             $this->assertEquals("In theory, there is no difference between theory and practice.\n", (yield $reader->readLine()));
@@ -143,6 +143,21 @@ class StreamReaderTest extends TestCase
             yield $reader->peek(10);
 
             $this->assertEquals($string, (yield $reader->readAll()));
+        })->done();
+
+        Loop\run();
+    }
+
+    public function testScanConsumesOnlyMatchedCharacters()
+    {
+        Coroutine\create(function () {
+            $stream = new Stream();
+            $reader = new StreamReader($stream);
+
+            yield $stream->end("99 bottles of beer\non the wall");
+
+            $this->assertEquals([99], (yield $reader->scan("%d")));
+            $this->assertEquals(" bottles of beer\non the wall", (yield $reader->readAll()));
         })->done();
 
         Loop\run();

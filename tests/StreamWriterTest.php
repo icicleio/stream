@@ -24,14 +24,91 @@ class StreamWriterTest extends TestCase
         $this->assertSame($stream, $writer->getStream());
     }
 
-    public function testWrite()
+    public function testIsOpen()
+    {
+        $stream = new Stream();
+        $writer = new StreamWriter($stream);
+
+        $this->assertTrue($writer->isOpen());
+        $stream->close();
+        $this->assertFalse($writer->isOpen());
+    }
+
+    public function testClose()
+    {
+        $stream = new Stream();
+        $writer = new StreamWriter($stream);
+
+        $this->assertTrue($stream->isOpen());
+        $writer->close();
+        $this->assertFalse($stream->isOpen());
+    }
+
+    public function testWriteString()
     {
         Coroutine\create(function () {
             $stream = new Stream();
             $writer = new StreamWriter($stream);
 
             yield $writer->write("hello");
+
             $this->assertEquals("hello", (yield $stream->read()));
+        })->done();
+
+        Loop\run();
+    }
+
+    public function testWriteInt()
+    {
+        Coroutine\create(function () {
+            $stream = new Stream();
+            $writer = new StreamWriter($stream);
+
+            yield $writer->write(42);
+
+            $this->assertEquals("42", (yield $stream->read()));
+        })->done();
+
+        Loop\run();
+    }
+
+    public function testWriteLine()
+    {
+        Coroutine\create(function () {
+            $stream = new Stream();
+            $writer = new StreamWriter($stream);
+
+            yield $writer->writeLine("hello");
+
+            $this->assertEquals("hello" . PHP_EOL, (yield $stream->read()));
+        })->done();
+
+        Loop\run();
+    }
+
+    public function testPrintf()
+    {
+        Coroutine\create(function () {
+            $stream = new Stream();
+            $writer = new StreamWriter($stream);
+
+            yield $writer->printf("Hello, %d %s.", 42, "fools");
+
+            $this->assertEquals("Hello, 42 fools.", (yield $stream->read()));
+        })->done();
+
+        Loop\run();
+    }
+
+    public function testPrintLine()
+    {
+        Coroutine\create(function () {
+            $stream = new Stream();
+            $writer = new StreamWriter($stream);
+
+            yield $writer->printLine("Hello, %d %s.", 42, "fools");
+
+            $this->assertEquals("Hello, 42 fools." . PHP_EOL, (yield $stream->read()));
         })->done();
 
         Loop\run();

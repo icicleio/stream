@@ -15,7 +15,7 @@ namespace Icicle\Stream;
  * The stream is read in a UTF-8 aware manner and text is assumed to be encoded
  * in UTF-8.
  */
-class StreamReader
+class StreamReader implements StreamInterface
 {
     /**
      * @var \Icicle\Stream\ReadableStreamInterface The stream to read from.
@@ -75,6 +75,11 @@ class StreamReader
      * @return \Generator
      *
      * @resolve string String of characters read from the stream.
+     *
+     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
+     * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function peek($length = 1)
     {
@@ -86,6 +91,8 @@ class StreamReader
     }
 
     /**
+     * @coroutine
+     *
      * Reads a specific number of characters from the stream.
      *
      * @return \Generator
@@ -124,6 +131,11 @@ class StreamReader
      * @return \Generator
      *
      * @resolve string A line of text read from the stream.
+     *
+     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
+     * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function readLine()
     {
@@ -149,6 +161,11 @@ class StreamReader
      * @return \Generator
      *
      * @resolve string The contents of the stream.
+     *
+     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
+     * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function readAll()
     {
@@ -168,6 +185,8 @@ class StreamReader
     }
 
     /**
+     * @coroutine
+     *
      * Reads and parses characters from the stream according to a format.
      *
      * The format string is of the same format as `sscanf()`.
@@ -177,6 +196,11 @@ class StreamReader
      * @return \Generator
      *
      * @resolve array An array of parsed values.
+     *
+     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
+     * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      *
      * @see http://php.net/sscanf
      */
@@ -188,7 +212,7 @@ class StreamReader
         // format string each time until the format successfully parses or the end
         // of the stream is reached.
         while ($this->stream->isReadable()) {
-            $buffer .= $this->peek(1);
+            $buffer .= (yield $this->peek(1));
 
             $result = sscanf($buffer, $format . '%n');
             $length = array_pop($result);
@@ -205,6 +229,8 @@ class StreamReader
     }
 
     /**
+     * @coroutine
+     *
      * Reads a specific number of characters directly from the stream.
      *
      * @return \Generator
