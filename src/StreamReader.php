@@ -79,10 +79,10 @@ class StreamReader
     public function peek($length = 1)
     {
         while (count($this->buffer) < $length) {
-            array_push($this->buffer, (yield $this->read(1)));
+            array_push($this->buffer, (yield $this->unbufferedRead(1)));
         }
 
-        yield implode('', array_slice($pieces, 0, $length));
+        yield implode('', array_slice($this->buffer, 0, $length));
     }
 
     /**
@@ -102,25 +102,13 @@ class StreamReader
         $buffer = "";
 
         // Drain the buffer first.
-        while (!empty($this->buffer)) {
-            $buffer .= array_unshift($this->buffer);
+        while (!empty($this->buffer) && $length > 0) {
+            $buffer .= array_shift($this->buffer);
             --$length;
         }
 
         // Read the specified number of characters.
-        for (; $this->stream->isReadable() && $length > 0; --$length) {
-            // Read the leading byte.
-            $char = (yield $this->stream->read(1));
-            $leadByte = ord($char);
-
-            // Read the remaining bytes for the character.
-            while (($leadByte & 0b11000000) === 0b11000000) {
-                $char .= (yield $this->stream->read(1));
-                $leadByte = $leadByte << 1;
-            }
-
-            $buffer .= $char;
-        }
+        $buffer .= (yield $this->unbufferedRead($length));
 
         yield $buffer;
     }
@@ -214,5 +202,39 @@ class StreamReader
         }
 
         yield null;
+    }
+
+    /**
+     * Reads a specific number of characters directly from the stream.
+     *
+     * @return \Generator
+     *
+     * @resolve string String of characters read from the stream.
+     *
+     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
+     * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
+     */
+    private function unbufferedRead($length = 0)
+    {
+        $buffer = "";
+
+        // Read the specified number of characters.
+        for (; $this->stream->isReadable() && $length > 0; --$length) {
+            // Read the leading byte.
+            $char = (yield $this->stream->read(1));
+            $leadByte = ord($char);
+
+            // Read the remaining bytes for the character.
+            while (($leadByte & 0b11000000) === 0b11000000) {
+                $char .= (yield $this->stream->read(1));
+                $leadByte = $leadByte << 1;
+            }
+
+            $buffer .= $char;
+        }
+
+        yield $buffer;
     }
 }
