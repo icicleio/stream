@@ -12,7 +12,7 @@ namespace Icicle\Stream;
 /**
  * Writes strings to a stream.
  */
-class StreamWriter
+class StreamWriter implements StreamInterface
 {
     /**
      * @var \Icicle\Stream\WritableStreamInterface The stream to write to.
@@ -50,7 +50,7 @@ class StreamWriter
     }
 
     /**
-     * Closes the stream reader and the underlying stream.
+     * Closes the stream writer and the underlying stream.
      */
     public function close()
     {
@@ -67,6 +67,10 @@ class StreamWriter
      * @param mixed $text A printable value that can be coerced to a string.
      *
      * @return \Generator
+     *
+     * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function write($text)
     {
@@ -83,6 +87,10 @@ class StreamWriter
      * @param mixed $text A printable value that can be coerced to a string.
      *
      * @return \Generator
+     *
+     * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function writeLine($text)
     {
@@ -90,6 +98,8 @@ class StreamWriter
     }
 
     /**
+     * @coroutine
+     *
      * Writes a formatted string to the stream.
      *
      * Accepts a format string followed by a series of mixed values. The string
@@ -100,6 +110,10 @@ class StreamWriter
      *
      * @return \Generator
      *
+     * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
+     *
      * @see http://php.net/prinf
      */
     public function printf($format /*, ...$args */)
@@ -109,6 +123,8 @@ class StreamWriter
     }
 
     /**
+     * @coroutine
+     *
      * Writes a formatted string to the stream and then terminates the line.
      *
      * Accepts a format string followed by a series of mixed values. The string
@@ -118,6 +134,10 @@ class StreamWriter
      * @param string $format The format string.
      *
      * @return \Generator
+     *
+     * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      *
      * @see http://php.net/prinf
      */
