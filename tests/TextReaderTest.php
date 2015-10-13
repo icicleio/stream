@@ -16,6 +16,14 @@ use Icicle\Stream\TextReader;
 
 class TextReaderTest extends TestCase
 {
+    /**
+     * @expectedException Icicle\Stream\Exception\InvalidArgumentError
+     */
+    public function testInvalidEncodingThrows()
+    {
+        $reader = new TextReader(new Stream(), 'WOOKIE-12');
+    }
+
     public function testGetStream()
     {
         $stream = new Stream();

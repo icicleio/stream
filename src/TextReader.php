@@ -10,6 +10,7 @@
 namespace Icicle\Stream;
 
 use Icicle\Stream\Exception\Error;
+use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Structures\Buffer;
 
 /**
@@ -53,10 +54,14 @@ class TextReader implements StreamInterface
             throw new Error('The mbstring extension is not loaded.');
         }
 
+        if (!in_array($encoding, mb_list_encodings())) {
+            throw new InvalidArgumentError("The encoding '$encoding' is not available.");
+        }
+
         $this->stream = $stream;
         $this->encoding = $encoding;
         $this->buffer = new Buffer();
-        $this->newLine = mb_convert_encoding("\n", $encoding, 'US-ASCII');
+        $this->newLine = mb_convert_encoding("\n", $encoding, 'ASCII');
     }
 
     /**
