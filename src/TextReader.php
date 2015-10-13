@@ -158,6 +158,7 @@ class TextReader implements StreamInterface
 
             if (($pos = strpos($buffer, "\n")) !== false) {
                 yield $this->buffer->drain() . substr($buffer, 0, $pos + 1);
+                $this->buffer->push(substr($buffer, $pos));
                 return;
             }
 
