@@ -28,6 +28,9 @@
     "autoload-dev": {
         "psr-4": {
             "Icicle\\Tests\\Stream\\": "tests"
-        }
+        },
+        "files": [
+            "src/functions.php"
+        ]
     }
 }

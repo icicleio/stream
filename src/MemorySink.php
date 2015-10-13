@@ -22,10 +22,8 @@ use Icicle\Stream\Structures\Buffer;
  * may be determined with tell(). Since all data remains in the sink, the entire length of the sink is available with
  * getLength().
  */
-class Sink implements DuplexStreamInterface, SeekableStreamInterface
+class MemorySink implements DuplexStreamInterface, SeekableStreamInterface
 {
-    use PipeTrait;
-
     /**
      * @var bool
      */
@@ -93,7 +91,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
 
         $length = (int) $length;
         if (0 > $length) {
-            $length = 0;
+            throw new InvalidArgumentError('The length should be a positive integer.');
         }
 
         $byte = (string) $byte;

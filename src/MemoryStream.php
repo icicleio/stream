@@ -13,6 +13,7 @@ use Exception;
 use Icicle\Promise\Deferred;
 use Icicle\Stream\Exception\BusyError;
 use Icicle\Stream\Exception\ClosedException;
+use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\UnreadableException;
 use Icicle\Stream\Exception\UnwritableException;
 use Icicle\Stream\Structures\Buffer;
@@ -22,10 +23,8 @@ use Icicle\Stream\Structures\Buffer;
  * the buffer. This class by itself is not particularly useful, but it can be extended to add functionality upon reading 
  * or writing, as well as acting as an example of how stream classes can be implemented.
  */
-class Stream implements DuplexStreamInterface
+class MemoryStream implements DuplexStreamInterface
 {
-    use PipeTrait;
-
     /**
      * @var \Icicle\Stream\Structures\Buffer
      */
@@ -142,7 +141,7 @@ class Stream implements DuplexStreamInterface
 
         $this->length = (int) $length;
         if (0 > $this->length) {
-            $this->length = 0;
+            throw new InvalidArgumentError('The length should be a positive integer.');
         }
 
         $this->byte = (string) $byte;
