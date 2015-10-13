@@ -37,6 +37,11 @@ class TextReader implements StreamInterface
     private $buffer;
 
     /**
+     * @var string The string of bytes representing a newline in the configured encoding.
+     */
+    private $newLine;
+
+    /**
      * Creates a new stream reader for a given stream.
      *
      * @param \Icicle\Stream\ReadableStreamInterface $stream The stream to read from.
@@ -51,6 +56,7 @@ class TextReader implements StreamInterface
         $this->stream = $stream;
         $this->encoding = $encoding;
         $this->buffer = new Buffer();
+        $this->newLine = mb_convert_encoding("\n", $encoding, 'US-ASCII');
     }
 
     /**
@@ -146,17 +152,19 @@ class TextReader implements StreamInterface
      */
     public function readLine()
     {
+        $newLineTail = substr($this->newLine, -1);
+
         // Check if a new line is already in the buffer.
-        if (($pos = $this->buffer->search("\n")) !== false)
+        if (($pos = $this->buffer->search($this->newLine)) !== false)
         {
             yield $this->buffer->shift($pos + 1);
             return;
         }
 
         while ($this->stream->isReadable()) {
-            $buffer = (yield $this->stream->read(0, "\n"));
+            $buffer = (yield $this->stream->read(0, $newLineTail));
 
-            if (($pos = strpos($buffer, "\n")) !== false) {
+            if (($pos = strpos($buffer, $this->newLine)) !== false) {
                 yield $this->buffer->drain() . substr($buffer, 0, $pos + 1);
                 $this->buffer->push(substr($buffer, $pos));
                 return;
