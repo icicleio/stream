@@ -14,19 +14,34 @@ namespace Icicle\Stream;
  */
 class StreamWriter implements StreamInterface
 {
+    const DEFAULT_BUFFER_SIZE = 16384;
+
     /**
      * @var \Icicle\Stream\WritableStreamInterface The stream to write to.
      */
     private $stream;
 
     /**
+     * @var \Icicle\Stream\Structures\Buffer
+     */
+    private $buffer;
+
+    /**
+     * @var int The max buffer size in bytes.
+     */
+    private $bufferSize;
+
+    /**
      * Creates a new stream writer for a given stream.
      *
      * @param \Icicle\Stream\WritableStreamInterface $stream The stream to write to.
+     * @param int The max buffer size in bytes.
      */
-    public function __construct(WritableStreamInterface $stream)
+    public function __construct(WritableStreamInterface $stream, $bufferSize = null)
     {
         $this->stream = $stream;
+        $this->buffer = new Buffer();
+        $this->bufferSize = $bufferSize ?: self::DEFAULT_BUFFER_SIZE;
     }
 
     /**
@@ -51,6 +66,9 @@ class StreamWriter implements StreamInterface
 
     /**
      * Closes the stream writer and the underlying stream.
+     *
+     * The buffer will not be automatically flushed. You should call `flush()` before
+     * closing to ensure all data is written to the stream.
      */
     public function close()
     {
@@ -60,9 +78,29 @@ class StreamWriter implements StreamInterface
     /**
      * @coroutine
      *
+     * Flushes the contents of the internal buffer to the underlying stream.
+     *
+     * @return \Generator
+     *
+     * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
+     */
+    public function flush()
+    {
+        if (!$this->buffer->isEmpty()) {
+            yield $this->stream->write($this->buffer->drain());
+        }
+    }
+
+    /**
+     * @coroutine
+     *
      * Writes a value to the stream.
      *
-     * The given value will be coerced to a string before being written.
+     * The given value will be coerced to a string before being written. The resulting
+     * string will be written to the internal buffer; if the buffer is full, the entire
+     * buffer will be flushed to the stream.
      *
      * @param mixed $text A printable value that can be coerced to a string.
      *
@@ -74,7 +112,11 @@ class StreamWriter implements StreamInterface
      */
     public function write($text)
     {
-        yield $this->stream->write((string)$text);
+        $this->buffer->push((string)$text);
+
+        if ($this->buffer->getLength() > $this->bufferSize) {
+            yield $this->flush();
+        }
     }
 
     /**
@@ -94,7 +136,7 @@ class StreamWriter implements StreamInterface
      */
     public function writeLine($text)
     {
-        yield $this->stream->write((string)$text . PHP_EOL);
+        yield $this->write((string)$text . PHP_EOL);
     }
 
     /**
@@ -144,6 +186,6 @@ class StreamWriter implements StreamInterface
     public function printLine($format /*, ...$args */)
     {
         $formatted = call_user_func_array('sprintf', func_get_args());
-        yield $this->writeLine($formatted);
+        yield $this->write($formatted . PHP_EOL);
     }
 }
