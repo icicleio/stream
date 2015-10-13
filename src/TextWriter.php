@@ -9,10 +9,12 @@
 
 namespace Icicle\Stream;
 
+use Icicle\Stream\Structures\Buffer;
+
 /**
- * Writes strings to a stream.
+ * Writes text to a stream.
  */
-class StreamWriter implements StreamInterface
+class TextWriter implements StreamInterface
 {
     const DEFAULT_BUFFER_SIZE = 16384;
 
@@ -27,6 +29,11 @@ class StreamWriter implements StreamInterface
     private $buffer;
 
     /**
+     * @var bool Indicates if the buffer should be flushed on every write.
+     */
+    private $autoFlush = false;
+
+    /**
      * @var int The max buffer size in bytes.
      */
     private $bufferSize;
@@ -35,12 +42,14 @@ class StreamWriter implements StreamInterface
      * Creates a new stream writer for a given stream.
      *
      * @param \Icicle\Stream\WritableStreamInterface $stream The stream to write to.
-     * @param int The max buffer size in bytes.
+     * @param bool $autoFlush Indicates if the buffer should be flushed on every write.
+     * @param int $bufferSize The max buffer size in bytes.
      */
-    public function __construct(WritableStreamInterface $stream, $bufferSize = null)
+    public function __construct(WritableStreamInterface $stream, $autoFlush = false, $bufferSize = null)
     {
         $this->stream = $stream;
         $this->buffer = new Buffer();
+        $this->autoFlush = (bool)$autoFlush;
         $this->bufferSize = $bufferSize ?: self::DEFAULT_BUFFER_SIZE;
     }
 
@@ -114,7 +123,7 @@ class StreamWriter implements StreamInterface
     {
         $this->buffer->push((string)$text);
 
-        if ($this->buffer->getLength() > $this->bufferSize) {
+        if ($this->autoFlush || $this->buffer->getLength() > $this->bufferSize) {
             yield $this->flush();
         }
     }

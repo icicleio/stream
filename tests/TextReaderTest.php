@@ -12,14 +12,14 @@ namespace Icicle\Tests\Stream;
 use Icicle\Coroutine;
 use Icicle\Loop;
 use Icicle\Stream\Stream;
-use Icicle\Stream\StreamReader;
+use Icicle\Stream\TextReader;
 
-class StreamReaderTest extends TestCase
+class TextReaderTest extends TestCase
 {
     public function testGetStream()
     {
         $stream = new Stream();
-        $reader = new StreamReader($stream);
+        $reader = new TextReader($stream);
 
         $this->assertSame($stream, $reader->getStream());
     }
@@ -27,7 +27,7 @@ class StreamReaderTest extends TestCase
     public function testIsOpen()
     {
         $stream = new Stream();
-        $reader = new StreamReader($stream);
+        $reader = new TextReader($stream);
 
         $this->assertTrue($reader->isOpen());
         $stream->close();
@@ -37,7 +37,7 @@ class StreamReaderTest extends TestCase
     public function testClose()
     {
         $stream = new Stream();
-        $reader = new StreamReader($stream);
+        $reader = new TextReader($stream);
 
         $this->assertTrue($stream->isOpen());
         $reader->close();
@@ -48,7 +48,7 @@ class StreamReaderTest extends TestCase
     {
         Coroutine\create(function () {
             $stream = new Stream();
-            $reader = new StreamReader($stream);
+            $reader = new TextReader($stream);
 
             yield $stream->end("hello");
 
@@ -62,7 +62,7 @@ class StreamReaderTest extends TestCase
     {
         Coroutine\create(function () {
             $stream = new Stream();
-            $reader = new StreamReader($stream);
+            $reader = new TextReader($stream);
 
             yield $stream->end("õwen");
 
@@ -76,7 +76,7 @@ class StreamReaderTest extends TestCase
     {
         Coroutine\create(function () {
             $stream = new Stream();
-            $reader = new StreamReader($stream);
+            $reader = new TextReader($stream);
 
             yield $stream->end("In theory, there is no difference between theory and practice.\nBut, in practice, there is.\n");
 
@@ -90,7 +90,7 @@ class StreamReaderTest extends TestCase
     {
         Coroutine\create(function () {
             $stream = new Stream();
-            $reader = new StreamReader($stream);
+            $reader = new TextReader($stream);
 
             $string = "In theory, there is no difference between theory and practice.\nBut, in practice, there is.\n";
             yield $stream->end($string);
@@ -106,7 +106,7 @@ class StreamReaderTest extends TestCase
     {
         Coroutine\create(function () {
             $stream = new Stream();
-            $reader = new StreamReader($stream);
+            $reader = new TextReader($stream);
 
             yield $stream->end("õwen");
 
@@ -121,7 +121,7 @@ class StreamReaderTest extends TestCase
     {
         Coroutine\create(function () {
             $stream = new Stream();
-            $reader = new StreamReader($stream);
+            $reader = new TextReader($stream);
 
             yield $stream->end("In theory, there is no difference between theory and practice.\nBut, in practice, there is.\n");
             yield $reader->peek(10);
@@ -136,7 +136,7 @@ class StreamReaderTest extends TestCase
     {
         Coroutine\create(function () {
             $stream = new Stream();
-            $reader = new StreamReader($stream);
+            $reader = new TextReader($stream);
 
             $string = "In theory, there is no difference between theory and practice.\nBut, in practice, there is.\n";
             yield $stream->end($string);
@@ -152,7 +152,7 @@ class StreamReaderTest extends TestCase
     {
         Coroutine\create(function () {
             $stream = new Stream();
-            $reader = new StreamReader($stream);
+            $reader = new TextReader($stream);
 
             yield $stream->end("99 bottles of beer\non the wall");
 

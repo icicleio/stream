@@ -9,32 +9,48 @@
 
 namespace Icicle\Stream;
 
+use Icicle\Stream\Exception\Error;
+use Icicle\Stream\Structures\Buffer;
+
 /**
- * Reads characters from a stream.
+ * Reads text from a stream.
  *
- * The stream is read in a UTF-8 aware manner and text is assumed to be encoded
- * in UTF-8.
+ * Requires mbstring to be available to do proper chracter decoding.
  */
-class StreamReader implements StreamInterface
+class TextReader implements StreamInterface
 {
+    const DEFAULT_CHUNK_SIZE = 4096;
+
     /**
      * @var \Icicle\Stream\ReadableStreamInterface The stream to read from.
      */
     private $stream;
 
     /**
-     * @var string[] A buffer of characters.
+     * @var string The name of the character encoding to use.
      */
-    private $buffer = [];
+    private $encoding;
+
+    /**
+     * @var \Icicle\Stream\Structures\Buffer
+     */
+    private $buffer;
 
     /**
      * Creates a new stream reader for a given stream.
      *
      * @param \Icicle\Stream\ReadableStreamInterface $stream The stream to read from.
+     * @param string $encoding The character encoding to use.
      */
-    public function __construct(ReadableStreamInterface $stream)
+    public function __construct(ReadableStreamInterface $stream, $encoding = 'UTF-8')
     {
+        if (!extension_loaded('mbstring')) {
+            throw new Error('The mbstring extension is not loaded.');
+        }
+
         $this->stream = $stream;
+        $this->encoding = $encoding;
+        $this->buffer = new Buffer();
     }
 
     /**
@@ -83,11 +99,12 @@ class StreamReader implements StreamInterface
      */
     public function peek($length = 1)
     {
-        while (count($this->buffer) < $length) {
-            array_push($this->buffer, (yield $this->unbufferedRead(1)));
+        // Read chunks of bytes until we reach the desired length.
+        while (mb_strlen((string)$this->buffer, $this->encoding) < $length && $this->stream->isReadable()) {
+            $this->buffer->push(yield $this->stream->read(self::DEFAULT_CHUNK_SIZE));
         }
 
-        yield implode('', array_slice($this->buffer, 0, $length));
+        yield mb_substr((string)$this->buffer, 0, min($length, $this->buffer->getLength()), $this->encoding);
     }
 
     /**
@@ -106,18 +123,8 @@ class StreamReader implements StreamInterface
      */
     public function read($length = 1)
     {
-        $buffer = "";
-
-        // Drain the buffer first.
-        while (!empty($this->buffer) && $length > 0) {
-            $buffer .= array_shift($this->buffer);
-            --$length;
-        }
-
-        // Read the specified number of characters.
-        $buffer .= (yield $this->unbufferedRead($length));
-
-        yield $buffer;
+        $text = (yield $this->peek($length));
+        $this->buffer->shift(strlen($text));
     }
 
     /**
@@ -139,18 +146,23 @@ class StreamReader implements StreamInterface
      */
     public function readLine()
     {
-        $buffer = "";
-
-        while ($this->stream->isReadable()) {
-            $char = (yield $this->read(1));
-            $buffer .= $char;
-
-            if ($char === "\n") {
-                break;
-            }
+        // Check if a new line is already in the buffer.
+        if (($pos = $this->buffer->search("\n")) !== false)
+        {
+            yield $this->buffer->shift($pos + 1);
+            return;
         }
 
-        yield $buffer;
+        while ($this->stream->isReadable()) {
+            $buffer = (yield $this->stream->read(0, "\n"));
+
+            if (($pos = strpos($buffer, "\n")) !== false) {
+                yield $this->buffer->drain() . substr($buffer, 0, $pos + 1);
+                return;
+            }
+
+            $this->buffer->push($buffer);
+        }
     }
 
     /**
@@ -169,19 +181,11 @@ class StreamReader implements StreamInterface
      */
     public function readAll()
     {
-        $buffer = "";
-
-        // Drain the buffer first.
-        if (!empty($this->buffer)) {
-            $buffer = implode('', $this->buffer);
-            $this->buffer = [];
-        }
-
         while ($this->stream->isReadable()) {
-            $buffer .= (yield $this->stream->read());
+            $this->buffer->push(yield $this->stream->read(0));
         }
 
-        yield $buffer;
+        yield $this->buffer->drain();
     }
 
     /**
@@ -206,61 +210,29 @@ class StreamReader implements StreamInterface
      */
     public function scan($format)
     {
-        $buffer = "";
+        // Read from the stream chunk by chunk, attempting to satisfy the format
+        // string each time until the format successfully parses or the end of
+        // the stream is reached.
+        while (true) {
+            $result = sscanf((string)$this->buffer, $format . '%n');
+            $length = $result ? array_pop($result) : null;
 
-        // Read from the stream character by character, attempting to satisfy the
-        // format string each time until the format successfully parses or the end
-        // of the stream is reached.
-        while ($this->stream->isReadable()) {
-            $buffer .= (yield $this->peek(1));
-
-            $result = sscanf($buffer, $format . '%n');
-            $length = array_pop($result);
-
-            if ($length !== null && $length < strlen($buffer)) {
+            // If the format string was satisfied, consume the used characters and
+            // return the parsed results.
+            if ($length !== null && $length < $this->buffer->getLength()) {
+                $this->buffer->shift($length);
                 yield $result;
                 return;
             }
 
-            yield $this->read(1);
-        }
-
-        yield null;
-    }
-
-    /**
-     * @coroutine
-     *
-     * Reads a specific number of characters directly from the stream.
-     *
-     * @return \Generator
-     *
-     * @resolve string String of characters read from the stream.
-     *
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
-     * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
-     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
-     */
-    private function unbufferedRead($length = 0)
-    {
-        $buffer = "";
-
-        // Read the specified number of characters.
-        for (; $this->stream->isReadable() && $length > 0; --$length) {
-            // Read the leading byte.
-            $char = (yield $this->stream->read(1));
-            $leadByte = ord($char);
-
-            // Read the remaining bytes for the character.
-            while (($leadByte & 0b11000000) === 0b11000000) {
-                $char .= (yield $this->stream->read(1));
-                $leadByte = $leadByte << 1;
+            // Read more into the buffer if possible.
+            if ($this->stream->isReadable()) {
+                $this->buffer->push(yield $this->stream->read(self::DEFAULT_CHUNK_SIZE));
+            } else {
+                // Format string can't be satisfied.
+                yield null;
+                return;
             }
-
-            $buffer .= $char;
         }
-
-        yield $buffer;
     }
 }
