@@ -98,6 +98,8 @@ class TextReader implements StreamInterface
      * Returns the next sequence of characters without consuming them.
      *
      * @param int $length The number of characters to peek.
+     * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
+     *     if no data is received. Use 0 for no timeout.
      *
      * @return \Generator
      *
@@ -108,11 +110,11 @@ class TextReader implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function peek($length = 1)
+    public function peek($length = 1, $timeout = 0)
     {
         // Read chunks of bytes until we reach the desired length.
         while (mb_strlen((string)$this->buffer, $this->encoding) < $length && $this->stream->isReadable()) {
-            $this->buffer->push(yield $this->stream->read(self::DEFAULT_CHUNK_SIZE));
+            $this->buffer->push(yield $this->stream->read(self::DEFAULT_CHUNK_SIZE, null, $timeout));
         }
 
         yield mb_substr((string)$this->buffer, 0, min($length, $this->buffer->getLength()), $this->encoding);
@@ -123,6 +125,10 @@ class TextReader implements StreamInterface
      *
      * Reads a specific number of characters from the stream.
      *
+     * @param int $length The number of characters to read.
+     * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
+     *     if no data is received. Use 0 for no timeout.
+     *
      * @return \Generator
      *
      * @resolve string String of characters read from the stream.
@@ -132,9 +138,9 @@ class TextReader implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function read($length = 1)
+    public function read($length = 1, $timeout = 0)
     {
-        $text = (yield $this->peek($length));
+        $text = (yield $this->peek($length, $timeout));
         $this->buffer->shift(strlen($text));
     }
 
@@ -146,6 +152,9 @@ class TextReader implements StreamInterface
      * Reads from the stream until a newline is reached or the stream is closed.
      * The newline characters are included in the returned string.
      *
+     * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
+     *     if no data is received. Use 0 for no timeout.
+     *
      * @return \Generator
      *
      * @resolve string A line of text read from the stream.
@@ -155,7 +164,7 @@ class TextReader implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function readLine()
+    public function readLine($timeout = 0)
     {
         $newLineTail = substr($this->newLine, -1);
 
@@ -167,7 +176,7 @@ class TextReader implements StreamInterface
         }
 
         while ($this->stream->isReadable()) {
-            $buffer = (yield $this->stream->read(0, $newLineTail));
+            $buffer = (yield $this->stream->read(0, $newLineTail, $timeout));
 
             if (($pos = strpos($buffer, $this->newLine)) !== false) {
                 yield $this->buffer->drain() . substr($buffer, 0, $pos + 1);
@@ -184,6 +193,9 @@ class TextReader implements StreamInterface
      *
      * Reads all characters from the stream until the end of the stream is reached.
      *
+     * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
+     *     if no data is received. Use 0 for no timeout.
+     *
      * @return \Generator
      *
      * @resolve string The contents of the stream.
@@ -193,10 +205,10 @@ class TextReader implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function readAll()
+    public function readAll($timeout = 0)
     {
         while ($this->stream->isReadable()) {
-            $this->buffer->push(yield $this->stream->read(0));
+            $this->buffer->push(yield $this->stream->read(0, null, $timeout));
         }
 
         yield $this->buffer->drain();
@@ -210,6 +222,8 @@ class TextReader implements StreamInterface
      * The format string is of the same format as `sscanf()`.
      *
      * @param string $format The parse format.
+     * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
+     *     if no data is received. Use 0 for no timeout.
      *
      * @return \Generator
      *
@@ -222,7 +236,7 @@ class TextReader implements StreamInterface
      *
      * @see http://php.net/sscanf
      */
-    public function scan($format)
+    public function scan($format, $timeout = 0)
     {
         // Read from the stream chunk by chunk, attempting to satisfy the format
         // string each time until the format successfully parses or the end of
@@ -241,7 +255,7 @@ class TextReader implements StreamInterface
 
             // Read more into the buffer if possible.
             if ($this->stream->isReadable()) {
-                $this->buffer->push(yield $this->stream->read(self::DEFAULT_CHUNK_SIZE));
+                $this->buffer->push(yield $this->stream->read(self::DEFAULT_CHUNK_SIZE, null, $timeout));
             } else {
                 // Format string can't be satisfied.
                 yield null;

@@ -89,16 +89,19 @@ class TextWriter implements StreamInterface
      *
      * Flushes the contents of the internal buffer to the underlying stream.
      *
+     * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
+     *     and the stream is closed if the data cannot be written to the stream. Use 0 for no timeout.
+     *
      * @return \Generator
      *
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function flush()
+    public function flush($timeout = 0)
     {
         if (!$this->buffer->isEmpty()) {
-            yield $this->stream->write($this->buffer->drain());
+            yield $this->stream->write($this->buffer->drain(), $timeout);
         }
     }
 
@@ -112,6 +115,8 @@ class TextWriter implements StreamInterface
      * buffer will be flushed to the stream.
      *
      * @param mixed $text A printable value that can be coerced to a string.
+     * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
+     *     and the stream is closed if the data cannot be written to the stream. Use 0 for no timeout.
      *
      * @return \Generator
      *
@@ -119,12 +124,12 @@ class TextWriter implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function write($text)
+    public function write($text, $timeout = 0)
     {
         $this->buffer->push((string)$text);
 
         if ($this->autoFlush || $this->buffer->getLength() > $this->bufferSize) {
-            yield $this->flush();
+            yield $this->flush($timeout);
         }
     }
 
@@ -136,6 +141,8 @@ class TextWriter implements StreamInterface
      * The given value will be coerced to a string before being written.
      *
      * @param mixed $text A printable value that can be coerced to a string.
+     * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
+     *     and the stream is closed if the data cannot be written to the stream. Use 0 for no timeout.
      *
      * @return \Generator
      *
@@ -143,9 +150,9 @@ class TextWriter implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function writeLine($text)
+    public function writeLine($text, $timeout = 0)
     {
-        yield $this->write((string)$text . PHP_EOL);
+        yield $this->write((string)$text . PHP_EOL, $timeout);
     }
 
     /**
