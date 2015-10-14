@@ -18,6 +18,7 @@ use Icicle\Stream;
 use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\UnwritableException;
 use Icicle\Stream\MemoryStream;
+use Icicle\Stream\ReadableStreamInterface;
 use Icicle\Stream\WritableStreamInterface;
 
 class FunctionsTest extends TestCase
@@ -1082,5 +1083,38 @@ class FunctionsTest extends TestCase
         $promise->done($this->createCallback(0), $callback);
 
         Loop\run();
+    }
+
+    public function testStdin()
+    {
+        $pipe1 = Stream\stdin();
+
+        $this->assertInstanceOf(ReadableStreamInterface::class, $pipe1);
+
+        $pipe2 = Stream\stdin();
+
+        $this->assertSame($pipe1, $pipe2);
+    }
+
+    public function testStdout()
+    {
+        $pipe1 = Stream\stdout();
+
+        $this->assertInstanceOf(WritableStreamInterface::class, $pipe1);
+
+        $pipe2 = Stream\stdout();
+
+        $this->assertSame($pipe1, $pipe2);
+    }
+
+    public function testStderr()
+    {
+        $pipe1 = Stream\stderr();
+
+        $this->assertInstanceOf(WritableStreamInterface::class, $pipe1);
+
+        $pipe2 = Stream\stderr();
+
+        $this->assertSame($pipe1, $pipe2);
     }
 }

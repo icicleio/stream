@@ -161,4 +161,52 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
 
         yield $buffer;
     }
+
+    /**
+     * Returns the readable stream for STDIN.
+     *
+     * @return \Icicle\Stream\ReadableStreamInterface
+     */
+    function stdin()
+    {
+        static $pipe;
+
+        if (null === $pipe) {
+            $pipe = new ReadableStreamResource(STDIN);
+        }
+
+        return $pipe;
+    }
+
+    /**
+     * Returns the writable stream for STDOUT.
+     *
+     * @return \Icicle\Stream\WritableStreamInterface
+     */
+    function stdout()
+    {
+        static $pipe;
+
+        if (null === $pipe) {
+            $pipe = new WritableStreamResource(STDOUT);
+        }
+
+        return $pipe;
+    }
+
+    /**
+     * Returns the writable stream for STDERR.
+     *
+     * @return \Icicle\Stream\WritableStreamInterface
+     */
+    function stderr()
+    {
+        static $pipe;
+
+        if (null === $pipe) {
+            $pipe = new WritableStreamResource(STDERR);
+        }
+
+        return $pipe;
+    }
 }
