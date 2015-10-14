@@ -88,7 +88,6 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @param ReadableStreamInterface $stream
      * @param int $length
-     * @param string|null $needle
      * @param float|int $timeout
      *
      * @return \Generator
@@ -101,28 +100,68 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    function readTo(ReadableStreamInterface $stream, $length, $needle = null, $timeout = 0)
+    function readTo(ReadableStreamInterface $stream, $length, $timeout = 0)
     {
         $length = (int) $length;
         if (0 > $length) {
             throw new InvalidArgumentError('The length should be a non-negative integer.');
         }
 
-        $needle = (string) $needle;
-        $nlength = strlen($needle);
-        $byte = $nlength ? $needle[$nlength - 1] : null;
+        if (0 === $length) {
+            yield '';
+            return;
+        }
 
         $buffer = '';
         $remaining = $length;
 
-        if (0 === $length && null === $byte) {
-            throw new InvalidArgumentError('The needle cannot be empty if the length is 0.');
+        do {
+            $buffer .= (yield $stream->read($remaining, null, $timeout));
+        } while (0 === $length || 0 < ($remaining = $length - strlen($buffer)));
+
+        yield $buffer;
+    }
+
+    /**
+     * @coroutine
+     *
+     * @param ReadableStreamInterface $stream
+     * @param string $needle
+     * @param int $maxlength
+     * @param float|int $timeout
+     *
+     * @return \Generator
+     *
+     * @resolve string
+     *
+     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
+     * @throws \Icicle\Stream\Exception\InvalidArgumentError If the length is invalid or the needle is an empty string.
+     * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
+     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
+     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
+     */
+    function readUntil(ReadableStreamInterface $stream, $needle, $maxlength = 0, $timeout = 0)
+    {
+        $maxlength = (int) $maxlength;
+        if (0 > $maxlength) {
+            throw new InvalidArgumentError('The length should be a non-negative integer.');
         }
+
+        $needle = (string) $needle;
+        $nlength = strlen($needle);
+
+        if (0 === $nlength) {
+            throw new InvalidArgumentError('The needle must be a non-empty string.');
+        }
+
+        $byte = $needle[$nlength - 1];
+        $buffer = '';
+        $remaining = $maxlength;
 
         do {
             $buffer .= (yield $stream->read($remaining, $byte, $timeout));
-        } while ((0 === $length || 0 < ($remaining = $length - strlen($buffer)))
-            && (null === $byte || (substr($buffer, -$nlength) !== $needle))
+        } while ((0 === $maxlength || 0 < ($remaining = $maxlength - strlen($buffer)))
+            && substr($buffer, -$nlength) !== $needle
         );
 
         yield $buffer;

@@ -962,10 +962,6 @@ class FunctionsTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        new Coroutine($writable->write(self::WRITE_STRING));
-
-        $length = strlen(self::WRITE_STRING) * 2;
-
         $promise = new Coroutine(Stream\readTo($readable, -1));
 
         $callback = $this->createCallback(1);
@@ -980,19 +976,36 @@ class FunctionsTest extends TestCase
     /**
      * @depends testReadTo
      */
-    public function testReadToNeedle()
+    public function testReadToWithZeroLength()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        $promise = new Coroutine(Stream\readTo($readable, 0));
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->identicalTo(''));
+
+        $promise->done($callback);
+
+        Loop\run();
+    }
+
+    public function testReadUntil()
     {
         list($readable, $writable) = $this->createStreams();
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
         $needle = '@#$';
+        $write = '$!@#$';
+        $expected = self::WRITE_STRING . $write;
 
-        $promise = new Coroutine(Stream\readTo($readable, 0, $needle));
+        $promise = new Coroutine(Stream\readUntil($readable, $needle));
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
-            ->with($this->identicalTo(self::WRITE_STRING . '$!@#$'));
+            ->with($this->identicalTo($expected));
 
         $promise->done($callback);
 
@@ -1000,12 +1013,81 @@ class FunctionsTest extends TestCase
 
         $this->assertTrue($promise->isPending());
 
-        new Coroutine($writable->write('$!@#$' . self::WRITE_STRING));
+        new Coroutine($writable->write($write . self::WRITE_STRING));
 
         Loop\run();
 
         $this->assertFalse($promise->isPending());
         $this->assertTrue($promise->isFulfilled());
+    }
+
+    /**
+     * @depends testReadUntil
+     */
+    public function testReadUntilWithMaxLength()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        new Coroutine($writable->write(self::WRITE_STRING));
+
+        $needle = '@#$';
+        $write = '$!@#$';
+        $expected = self::WRITE_STRING . substr($write, 0 , 1);
+
+        $promise = new Coroutine(Stream\readUntil($readable, $needle, strlen(self::WRITE_STRING) + 1));
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->identicalTo($expected));
+
+        $promise->done($callback);
+
+        Loop\run();
+
+        $this->assertTrue($promise->isPending());
+
+        new Coroutine($writable->write($write . self::WRITE_STRING));
+
+        Loop\run();
+
+        $this->assertFalse($promise->isPending());
+        $this->assertTrue($promise->isFulfilled());
+    }
+
+    /**
+     * @depends testReadUntil
+     */
+    public function testReadUntilInvalidMaxLength()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        $promise = new Coroutine(Stream\readUntil($readable, "\n", -1));
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->isInstanceOf(InvalidArgumentError::class));
+
+        $promise->done($this->createCallback(0), $callback);
+
+        Loop\run();
+    }
+
+    /**
+     * @depends testReadUntil
+     */
+    public function testReadUntilInvalidNeedle()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        $promise = new Coroutine(Stream\readUntil($readable, ''));
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->isInstanceOf(InvalidArgumentError::class));
+
+        $promise->done($this->createCallback(0), $callback);
+
+        Loop\run();
     }
 
     public function testReadAll()
@@ -1071,8 +1153,6 @@ class FunctionsTest extends TestCase
     public function testReadAllInvalidMaxLength()
     {
         list($readable, $writable) = $this->createStreams();
-
-        new Coroutine($writable->write(self::WRITE_STRING));
 
         $promise = new Coroutine(Stream\readAll($readable, -1));
 
