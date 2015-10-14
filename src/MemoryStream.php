@@ -16,7 +16,6 @@ use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\UnreadableException;
 use Icicle\Stream\Exception\UnwritableException;
-use Icicle\Stream\Structures\Buffer;
 
 /**
  * Serves as buffer that implements the stream interface, allowing consumers to be notified when data is available in
@@ -72,7 +71,7 @@ class MemoryStream implements DuplexStreamInterface
      */
     public function __construct($hwm = 0, $data = '')
     {
-        $this->buffer = new Buffer($data);
+        $this->buffer = new Structures\Buffer($data);
         $this->hwm = (int) $hwm;
         if (0 > $this->hwm) {
             $this->hwm = 0;
@@ -237,7 +236,6 @@ class MemoryStream implements DuplexStreamInterface
      *
      * @resolve int Number of bytes written to the stream.
      *
-     * @throws \Icicle\Stream\Exception\BusyError If the stream was already waiting to write.
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is not longer writable.
      */
     protected function send($data, $timeout = 0, $end = false)

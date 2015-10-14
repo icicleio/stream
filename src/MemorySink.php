@@ -14,7 +14,6 @@ use Icicle\Stream\Exception\OutOfBoundsException;
 use Icicle\Stream\Exception\UnreadableException;
 use Icicle\Stream\Exception\UnseekableException;
 use Icicle\Stream\Exception\UnwritableException;
-use Icicle\Stream\Structures\Buffer;
 
 /**
  * Acts as a buffered sink with a seekable read/write pointer. All data written to the sink remains in the sink. The
@@ -51,7 +50,7 @@ class MemorySink implements DuplexStreamInterface, SeekableStreamInterface
      */
     public function __construct($data = '')
     {
-        $this->buffer = new Buffer($data);
+        $this->buffer = new Structures\Buffer($data);
         $this->iterator = $this->buffer->getIterator();
     }
 
