@@ -1167,7 +1167,7 @@ class FunctionsTest extends TestCase
 
     public function testPair()
     {
-        $socket = Socket\pair();
+        $socket = Stream\pair();
 
         $this->assertInternalType('resource', $socket[0]);
         $this->assertInternalType('resource', $socket[1]);
