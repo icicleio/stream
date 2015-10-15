@@ -15,10 +15,10 @@ $coroutine = Coroutine\create(function () {
     $pipe2 = new DuplexPipe($pipe2);
 
     // Write data to pipe 2.
-    yield $pipe2->write("This is just a test.\n");
+    yield from $pipe2->write("This is just a test.\n");
 
     // Data written to pipe 2 is readable on pipe 1.
-    $data = (yield $pipe1->read());
+    $data = (yield from $pipe1->read());
 
     echo $data; // Echoes "This is just a test."
 });

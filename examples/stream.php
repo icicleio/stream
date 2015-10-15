@@ -11,7 +11,7 @@ use Icicle\Stream\MemoryStream;
 $generator = function (DuplexStreamInterface $stream) {
     yield $stream->write("This is just a test.\nThis will not be read.");
 
-    $data = (yield $stream->read(0, "\n"));
+    $data = (yield from $stream->read(0, "\n"));
 
     echo $data; // Echoes "This is just a test."
 };
