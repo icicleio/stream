@@ -47,12 +47,15 @@ class TextWriter implements StreamInterface
      * @param bool $autoFlush Indicates if the buffer should be flushed on every write.
      * @param int $bufferSize The max buffer size in bytes.
      */
-    public function __construct(WritableStreamInterface $stream, $autoFlush = false, $bufferSize = null)
-    {
+    public function __construct(
+        WritableStreamInterface $stream,
+        $autoFlush = false,
+        $bufferSize = self::DEFAULT_BUFFER_SIZE
+    ) {
         $this->stream = $stream;
         $this->buffer = new Buffer();
-        $this->autoFlush = (bool)$autoFlush;
-        $this->bufferSize = $bufferSize ?: self::DEFAULT_BUFFER_SIZE;
+        $this->autoFlush = (bool) $autoFlush;
+        $this->bufferSize = (int) $bufferSize;
     }
 
     /**
@@ -128,7 +131,7 @@ class TextWriter implements StreamInterface
      */
     public function write($text, $timeout = 0)
     {
-        $this->buffer->push((string)$text);
+        $this->buffer->push((string) $text);
 
         if ($this->autoFlush || $this->buffer->getLength() > $this->bufferSize) {
             yield $this->flush($timeout);
@@ -154,7 +157,7 @@ class TextWriter implements StreamInterface
      */
     public function writeLine($text, $timeout = 0)
     {
-        yield $this->write((string)$text . PHP_EOL, $timeout);
+        yield $this->write((string) $text . PHP_EOL, $timeout);
     }
 
     /**

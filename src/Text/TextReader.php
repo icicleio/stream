@@ -19,7 +19,7 @@ use Icicle\Stream\Structures\Buffer;
 /**
  * Reads text from a stream.
  *
- * Requires mbstring to be available to do proper chracter decoding.
+ * Requires mbstring to be available to do proper character decoding.
  */
 class TextReader implements StreamInterface
 {
@@ -114,11 +114,11 @@ class TextReader implements StreamInterface
     public function peek($length = 1, $timeout = 0)
     {
         // Read chunks of bytes until we reach the desired length.
-        while (mb_strlen((string)$this->buffer, $this->encoding) < $length && $this->stream->isReadable()) {
+        while (mb_strlen((string) $this->buffer, $this->encoding) < $length && $this->stream->isReadable()) {
             $this->buffer->push(yield $this->stream->read(0, null, $timeout));
         }
 
-        yield mb_substr((string)$this->buffer, 0, min($length, $this->buffer->getLength()), $this->encoding);
+        yield mb_substr((string) $this->buffer, 0, min($length, $this->buffer->getLength()), $this->encoding);
     }
 
     /**
@@ -141,8 +141,7 @@ class TextReader implements StreamInterface
      */
     public function read($length = 1, $timeout = 0)
     {
-        $text = (yield $this->peek($length, $timeout));
-        $this->buffer->shift(strlen($text));
+        yield $this->buffer->shift(strlen(yield $this->peek($length, $timeout)));
     }
 
     /**
@@ -171,21 +170,19 @@ class TextReader implements StreamInterface
         $newLineSize = strlen($this->newLine);
 
         // Check if a new line is already in the buffer.
-        if (($pos = mb_strpos((string)$this->buffer, $this->newLine, 0, $this->encoding)) !== false)
-        {
+        if (($pos = $this->buffer->search($this->newLine)) !== false) {
             yield $this->buffer->shift($pos + $newLineSize);
             return;
         }
 
-        while ($this->stream->isReadable()) {
-            $length = $this->buffer->getLength();
-            $this->buffer->push(yield Stream\readUntil($this->stream, $this->newLine, 0, $timeout));
+        $this->buffer->push(yield Stream\readUntil($this->stream, $this->newLine, 0, $timeout));
 
-            if (($pos = mb_strpos((string)$this->buffer, $this->newLine, $length, $this->encoding)) !== false) {
-                yield $this->buffer->shift($pos + $newLineSize);
-                return;
-            }
+        if (($pos = $this->buffer->search($this->newLine)) !== false) {
+            yield $this->buffer->shift($pos + $newLineSize);
+            return;
         }
+
+        yield $this->buffer->shift(strlen(mb_strcut((string) $this->buffer, 0, null, $this->encoding)));
     }
 
     /**
@@ -211,7 +208,7 @@ class TextReader implements StreamInterface
     public function readAll($maxlength = 0, $timeout = 0)
     {
         $this->buffer->push(yield Stream\readAll($this->stream, $maxlength, $timeout));
-        yield mb_strcut($this->buffer->drain(), 0, null, $this->encoding);
+        yield $this->buffer->shift(strlen(mb_strcut((string) $this->buffer, 0, null, $this->encoding)));
     }
 
     /**
@@ -258,7 +255,7 @@ class TextReader implements StreamInterface
                 $this->buffer->push(yield $this->stream->read(0, null, $timeout));
             } else {
                 // Format string can't be satisfied.
-                yield null;
+                yield [];
                 return;
             }
         }
