@@ -9,6 +9,7 @@
 
 namespace Icicle\Stream;
 
+use Icicle\Stream\Exception\FailureException;
 use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\UnwritableException;
 use Icicle\Stream\Pipe\ReadablePipe;
@@ -201,6 +202,26 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
         }
 
         yield $buffer;
+    }
+
+    /**
+     * Returns a pair of connected unix domain stream socket resources.
+     *
+     * @return resource[] Pair of socket resources.
+     *
+     * @throws \Icicle\Stream\Exception\FailureException If creating the sockets fails.
+     */
+    function pair()
+    {
+        if (false === ($sockets = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP))) {
+            $message = 'Failed to create socket pair.';
+            if ($error = error_get_last()) {
+                $message .= sprintf(' Errno: %d; %s', $error['type'], $error['message']);
+            }
+            throw new FailureException($message);
+        }
+
+        return $sockets;
     }
 
     /**

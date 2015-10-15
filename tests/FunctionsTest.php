@@ -1165,6 +1165,22 @@ class FunctionsTest extends TestCase
         Loop\run();
     }
 
+    public function testPair()
+    {
+        $socket = Socket\pair();
+
+        $this->assertInternalType('resource', $socket[0]);
+        $this->assertInternalType('resource', $socket[1]);
+
+        $this->assertSame('stream', get_resource_type($socket[0]));
+        $this->assertSame('stream', get_resource_type($socket[1]));
+
+        $string = 'test';
+
+        fwrite($socket[0], $string);
+        $this->assertSame($string, fread($socket[1], 8192));
+    }
+
     public function testStdin()
     {
         $pipe1 = Stream\stdin();
