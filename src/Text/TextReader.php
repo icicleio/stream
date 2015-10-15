@@ -153,7 +153,8 @@ class TextReader implements StreamInterface
      * Reads a single line from the stream.
      *
      * Reads from the stream until a newline is reached or the stream is closed.
-     * The newline characters are included in the returned string.
+     * The newline characters are included in the returned string. If reading ends
+     * in the middle of a character, the trailing bytes are not consumed.
      *
      * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
      *     if no data is received. Use 0 for no timeout.
@@ -169,25 +170,23 @@ class TextReader implements StreamInterface
      */
     public function readLine($timeout = 0)
     {
-        $newLineTail = substr($this->newLine, -1);
+        $newLineSize = strlen($this->newLine);
 
         // Check if a new line is already in the buffer.
-        if (($pos = $this->buffer->search($this->newLine)) !== false)
+        if (($pos = mb_strpos((string)$this->buffer, $this->newLine, 0, $this->encoding)) !== false)
         {
-            yield $this->buffer->shift($pos + 1);
+            yield $this->buffer->shift($pos + $newLineSize);
             return;
         }
 
         while ($this->stream->isReadable()) {
-            $buffer = (yield Stream\readUntil($this->stream, $this->newLine, 0, $timeout));
+            $length = $this->buffer->getLength();
+            $this->buffer->push(yield Stream\readUntil($this->stream, $this->newLine, 0, $timeout));
 
-            if (($pos = strpos($buffer, $this->newLine)) !== false) {
-                yield $this->buffer->drain() . substr($buffer, 0, $pos + 1);
-                $this->buffer->push(substr($buffer, $pos));
+            if (($pos = mb_strpos((string)$this->buffer, $this->newLine, $length, $this->encoding)) !== false) {
+                yield $this->buffer->shift($pos + $newLineSize);
                 return;
             }
-
-            $this->buffer->push($buffer);
         }
     }
 
@@ -198,6 +197,7 @@ class TextReader implements StreamInterface
      *
      * If the stream ends in the middle of a character, the left over bytes will be discarded.
      *
+     * @param int $maxLength The maximum number of bytes to read.
      * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
      *     if no data is received. Use 0 for no timeout.
      *
@@ -210,10 +210,10 @@ class TextReader implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function readAll($timeout = 0)
+    public function readAll($maxlength = 0, $timeout = 0)
     {
-        $this->buffer->push(yield Stream\readAll($this->stream, 0, $timeout));
-        yield mb_strcut($this->buffer->drain(), 0);
+        $this->buffer->push(yield Stream\readAll($this->stream, $maxlength, $timeout));
+        yield mb_strcut($this->buffer->drain(), 0, null, $this->encoding);
     }
 
     /**
