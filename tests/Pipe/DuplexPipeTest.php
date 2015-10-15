@@ -1,7 +1,7 @@
 <?php
 
 /*
- * This file is part of the socket package for Icicle, a library for writing asynchronous code in PHP.
+ * This file is part of the stream package for Icicle, a library for writing asynchronous code in PHP.
  *
  * @copyright 2014-2015 Aaron Piotrowski. All rights reserved.
  * @license MIT See the LICENSE file that was distributed with this source code for more information.
@@ -21,7 +21,7 @@ use Icicle\Stream\Exception\UnwritableException;
 use Icicle\Stream\Pipe\DuplexPipe;
 use Icicle\Tests\Stream\StreamResourceTest;
 
-class StreamSocketTest extends StreamResourceTest
+class DuplexPipeTest extends StreamResourceTest
 {
     const CHUNK_SIZE = 8192;
     const TIMEOUT = 0.1;
