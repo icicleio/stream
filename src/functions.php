@@ -19,8 +19,8 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
     /**
      * @coroutine
      *
-     * @param \Icicle\Stream\ReadableStreamInterface $from
-     * @param \Icicle\Stream\WritableStreamInterface $to
+     * @param \Icicle\Stream\ReadableStreamInterface $source
+     * @param \Icicle\Stream\WritableStreamInterface $destination
      * @param bool $end
      * @param int $length
      * @param string|null $byte
@@ -38,14 +38,14 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     function pipe(
-        ReadableStreamInterface $from,
-        WritableStreamInterface $to,
+        ReadableStreamInterface $source,
+        WritableStreamInterface $destination,
         $end = true,
         $length = 0,
         $byte = null,
         $timeout = 0
     ) {
-        if (!$to->isWritable()) {
+        if (!$destination->isWritable()) {
             throw new UnwritableException('The stream is not writable.');
         }
 
@@ -61,26 +61,26 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
 
         try {
             do {
-                $data = (yield $from->read($length, $byte, $timeout));
+                $data = (yield $source->read($length, $byte, $timeout));
 
                 $count = strlen($data);
                 $bytes += $count;
 
-                yield $to->write($data, $timeout);
-            } while ($from->isReadable()
-                && $to->isWritable()
+                yield $destination->write($data, $timeout);
+            } while ($source->isReadable()
+                && $destination->isWritable()
                 && (null === $byte || $data[$count - 1] !== $byte)
                 && (0 === $length || 0 < $length -= $count)
             );
         } catch (\Exception $exception) {
-            if ($end && $to->isWritable()) {
-                yield $to->end();
+            if ($end && $destination->isWritable()) {
+                yield $destination->end();
             }
             throw $exception;
         }
 
-        if ($end && $to->isWritable()) {
-            yield $to->end();
+        if ($end && $destination->isWritable()) {
+            yield $destination->end();
         }
 
         yield $bytes;
