@@ -11,7 +11,7 @@ namespace Icicle\Tests\Stream;
 
 use Icicle\Coroutine;
 use Icicle\Loop;
-use Icicle\Stream\Stream;
+use Icicle\Stream\MemoryStream;
 use Icicle\Stream\TextReader;
 
 class TextReaderTest extends TestCase
@@ -21,12 +21,12 @@ class TextReaderTest extends TestCase
      */
     public function testInvalidEncodingThrows()
     {
-        $reader = new TextReader(new Stream(), 'WOOKIE-12');
+        $reader = new TextReader(new MemoryStream(), 'WOOKIE-12');
     }
 
     public function testGetStream()
     {
-        $stream = new Stream();
+        $stream = new MemoryStream();
         $reader = new TextReader($stream);
 
         $this->assertSame($stream, $reader->getStream());
@@ -34,7 +34,7 @@ class TextReaderTest extends TestCase
 
     public function testIsOpen()
     {
-        $stream = new Stream();
+        $stream = new MemoryStream();
         $reader = new TextReader($stream);
 
         $this->assertTrue($reader->isOpen());
@@ -44,7 +44,7 @@ class TextReaderTest extends TestCase
 
     public function testClose()
     {
-        $stream = new Stream();
+        $stream = new MemoryStream();
         $reader = new TextReader($stream);
 
         $this->assertTrue($stream->isOpen());
@@ -55,7 +55,7 @@ class TextReaderTest extends TestCase
     public function testReadSingleChar()
     {
         Coroutine\create(function () {
-            $stream = new Stream();
+            $stream = new MemoryStream();
             $reader = new TextReader($stream);
 
             yield $stream->end("hello");
@@ -69,7 +69,7 @@ class TextReaderTest extends TestCase
     public function testReadSingleMultibyteChar()
     {
         Coroutine\create(function () {
-            $stream = new Stream();
+            $stream = new MemoryStream();
             $reader = new TextReader($stream);
 
             yield $stream->end("õwen");
@@ -83,7 +83,7 @@ class TextReaderTest extends TestCase
     public function testReadLine()
     {
         Coroutine\create(function () {
-            $stream = new Stream();
+            $stream = new MemoryStream();
             $reader = new TextReader($stream);
 
             yield $stream->end("In theory, there is no difference between theory and practice.\nBut, in practice, there is.\n");
@@ -97,7 +97,7 @@ class TextReaderTest extends TestCase
     public function testReadAll()
     {
         Coroutine\create(function () {
-            $stream = new Stream();
+            $stream = new MemoryStream();
             $reader = new TextReader($stream);
 
             $string = "In theory, there is no difference between theory and practice.\nBut, in practice, there is.\n";
@@ -113,7 +113,7 @@ class TextReaderTest extends TestCase
     public function testPeekDoesNotConsume()
     {
         Coroutine\create(function () {
-            $stream = new Stream();
+            $stream = new MemoryStream();
             $reader = new TextReader($stream);
 
             yield $stream->end("õwen");
@@ -128,7 +128,7 @@ class TextReaderTest extends TestCase
     public function testReadLineAfterPeek()
     {
         Coroutine\create(function () {
-            $stream = new Stream();
+            $stream = new MemoryStream();
             $reader = new TextReader($stream);
 
             yield $stream->end("In theory, there is no difference between theory and practice.\nBut, in practice, there is.\n");
@@ -143,7 +143,7 @@ class TextReaderTest extends TestCase
     public function testReadAllAfterPeek()
     {
         Coroutine\create(function () {
-            $stream = new Stream();
+            $stream = new MemoryStream();
             $reader = new TextReader($stream);
 
             $string = "In theory, there is no difference between theory and practice.\nBut, in practice, there is.\n";
@@ -159,7 +159,7 @@ class TextReaderTest extends TestCase
     public function testScanConsumesOnlyMatchedCharacters()
     {
         Coroutine\create(function () {
-            $stream = new Stream();
+            $stream = new MemoryStream();
             $reader = new TextReader($stream);
 
             yield $stream->end("99 bottles of beer\non the wall");

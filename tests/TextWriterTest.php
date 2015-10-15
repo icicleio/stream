@@ -11,14 +11,14 @@ namespace Icicle\Tests\Stream;
 
 use Icicle\Coroutine;
 use Icicle\Loop;
-use Icicle\Stream\Stream;
+use Icicle\Stream\MemoryStream;
 use Icicle\Stream\TextWriter;
 
 class TextWriterTest extends TestCase
 {
     public function testGetStream()
     {
-        $stream = new Stream();
+        $stream = new MemoryStream();
         $writer = new TextWriter($stream);
 
         $this->assertSame($stream, $writer->getStream());
@@ -26,7 +26,7 @@ class TextWriterTest extends TestCase
 
     public function testIsOpen()
     {
-        $stream = new Stream();
+        $stream = new MemoryStream();
         $writer = new TextWriter($stream);
 
         $this->assertTrue($writer->isOpen());
@@ -36,7 +36,7 @@ class TextWriterTest extends TestCase
 
     public function testClose()
     {
-        $stream = new Stream();
+        $stream = new MemoryStream();
         $writer = new TextWriter($stream);
 
         $this->assertTrue($stream->isOpen());
@@ -47,7 +47,7 @@ class TextWriterTest extends TestCase
     public function testWriteString()
     {
         Coroutine\create(function () {
-            $stream = new Stream();
+            $stream = new MemoryStream();
             $writer = new TextWriter($stream, true);
 
             yield $writer->write("hello");
@@ -61,7 +61,7 @@ class TextWriterTest extends TestCase
     public function testWriteInt()
     {
         Coroutine\create(function () {
-            $stream = new Stream();
+            $stream = new MemoryStream();
             $writer = new TextWriter($stream, true);
 
             yield $writer->write(42);
@@ -75,7 +75,7 @@ class TextWriterTest extends TestCase
     public function testWriteLine()
     {
         Coroutine\create(function () {
-            $stream = new Stream();
+            $stream = new MemoryStream();
             $writer = new TextWriter($stream, true);
 
             yield $writer->writeLine("hello");
@@ -89,7 +89,7 @@ class TextWriterTest extends TestCase
     public function testPrintf()
     {
         Coroutine\create(function () {
-            $stream = new Stream();
+            $stream = new MemoryStream();
             $writer = new TextWriter($stream, true);
 
             yield $writer->printf("Hello, %d %s.", 42, "fools");
@@ -103,7 +103,7 @@ class TextWriterTest extends TestCase
     public function testPrintLine()
     {
         Coroutine\create(function () {
-            $stream = new Stream();
+            $stream = new MemoryStream();
             $writer = new TextWriter($stream, true);
 
             yield $writer->printLine("Hello, %d %s.", 42, "fools");
