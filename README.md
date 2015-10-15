@@ -28,7 +28,7 @@ You can also manually edit `composer.json` to add this library as a project requ
 // composer.json
 {
     "require": {
-        "icicleio/stream": "^0.3"
+        "icicleio/stream": "^0.4"
     }
 }
 ```
@@ -47,7 +47,6 @@ Streams represent a common promise-based API that may be implemented by classes 
     - [close()](#close) - Closes the stream.
 - [ReadableStreamInterface](#readablestreaminterface) - Interface for readable streams.
     - [read()](#read) - Read data from the stream.
-    - [pipe()](#pipe) - Pipes data from this stream to a writable stream.
     - [isReadable()](#isreadable) - Determines if the stream is readable.
 - [WritableStreamInterface](#writablestreaminterface) - Interface for writable streams.
     - [write()](#write) - Writes data to the stream.
@@ -58,8 +57,25 @@ Streams represent a common promise-based API that may be implemented by classes 
     - [seek()](#seek) - Moves the stream pointer.
     - [tell()](#tell) - Returns the current position of the stream pointer.
     - [getLength()](#getlength) - Returns the length of the stream if known.
-- [Stream](#stream) - Buffer that implements `Icicle\Stream\DuplexStreamInterface`.
-- [Sink](#sink) - Memory buffer that implements `Icicle\Stream\DuplexStreamInterface` and `Icicle\Stream\SeekableStreamInterface`.
+- [MemoryStream](#memorystream) - Buffer that implements `Icicle\Stream\DuplexStreamInterface`.
+- [MemorySink](#memorysink) - Memory buffer that implements `Icicle\Stream\DuplexStreamInterface` and `Icicle\Stream\SeekableStreamInterface`.
+- [StreamResourceInterface](#streamresourceinterface)
+    - [getResource()](#getresource) - Returns the underlying stream resource.
+- [ReadablePipe](#readablepipe)
+    - [ReadablePipe Constructor](#readablepipe-constructor) - Creates a readable pipe from a stream resource.
+- [WritablePipe](#writablepipe)
+    - [WritablePipe Constructor](#writablepipe-constructor) - Creates a writable stream from a stream resource.
+- [DuplexPipe](#duplexpipe)
+    - [DuplexPipe Constructor](#duplexpipe-constructor) - Creates a duplex stream from a stream resource.
+- [Functions](#functions)
+    - [pipe()](#stream-pipe) - Pipes data from a readable stream to a writable stream.
+    - [readTo()](#stream-readto) - Reads data from a readable stream until a given number of bytes is read.
+    - [readUntil()](#stream-readuntil) - Reads data from a readable stream until a given string is read.
+    - [readAll()](#stream-readall) - Reads data from a readable stream the stream is no longer readable.
+    - [pair()](#stream-pair) - Returns a pair of stream socket resources.
+    - [stdin()](#stream-stdin) - Returns a global readable stream for STDIN.
+    - [stdout()](#stream-stdout) - Returns a global writable stream for STDOUT.
+    - [stderr()](#stream-stderr) - Returns a global writable stream for STDERR.
 
 #### Function prototypes
 
@@ -114,30 +130,6 @@ Returns a promise that is fulfilled with data read from the stream when data bec
 Resolution | Type | Description
 :-: | :-- | :--
 Fulfilled | `string` | Any number of bytes or up to `$length` bytes if `$length` was not `0`.
-Rejected | `Icicle\Stream\Exception\BusyError` | If a read was already pending on the stream.
-Rejected | `Icicle\Stream\Exception\UnreadableException` | If the stream is no longer readable.
-Rejected | `Icicle\Stream\Exception\ClosedException` | If the stream is unexpectedly closed.
-Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the stream times out.
-
----
-
-#### pipe()
-
-```php
-ReadableStreamInterface::pipe(
-    WritableStreamInterface $stream,
-    bool $end = true,
-    int $length = 0,
-    string|null $byte = null
-    float $timeout = 0
-): Generator
-```
-
-Returns a generator that should be used within a coroutine or used to create a new coroutine. Pipes all data read from this stream to the writable stream. If `$length` is not `0`, only `$length` bytes will be piped to the writable stream.  If `$byte` is not `null`, piping will end once `$byte` is encountered in the stream. The returned promise is fulfilled with the number of bytes piped once the writable stream is no longer writable, `$length` bytes have been piped, or `$byte` is encountered in the stream.
-
-Resolution | Type | Description
-:-: | :-- | :--
-Fulfilled | `int` | Fulfilled when the writable stream is no longer writable or when `$length` bytes have been piped or `$byte` is read from the stream.
 Rejected | `Icicle\Stream\Exception\BusyError` | If a read was already pending on the stream.
 Rejected | `Icicle\Stream\Exception\UnreadableException` | If the stream is no longer readable.
 Rejected | `Icicle\Stream\Exception\ClosedException` | If the stream is unexpectedly closed.
@@ -250,23 +242,23 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If writing to the strea
 #### getLength()
 
 ```php
-SeekableStreamInterface::getLength(): int|null
+SeekableStreamInterface::getLength(): int
 ```
 
-Returns the total length of the stream if known, otherwise null. Value returned may not reflect a pending write operation.
+Returns the total length of the stream if known, otherwise -1. Value returned may not reflect a pending write operation.
 
-## Stream
+## MemoryStream
 
-`Icicle\Stream\Stream` objects act as a buffer that implements `Icicle\Stream\DuplexStreamInterface`, allowing consumers to be notified when data is available in the buffer. This class by itself is not particularly useful, but it can be extended to add functionality upon reading or writing, as well as acting as an example of how stream classes can be implemented.
+`Icicle\Stream\MemoryStream` objects act as a buffer that implements `Icicle\Stream\DuplexStreamInterface`, allowing consumers to be notified when data is available in the buffer. This class by itself is not particularly useful, but it can be extended to add functionality upon reading or writing, as well as acting as an example of how stream classes can be implemented.
 
-Anything written to an instance of `Icicle\Stream\Stream` is immediately readable.
+Anything written to an instance of `Icicle\Stream\MemoryStream` is immediately readable.
 
 ```php
 use Icicle\Coroutine\Coroutine;
 use Icicle\Loop;
-use Icicle\Stream\Stream;
+use Icicle\Stream\MemoryStream;
 
-$stream = new Stream();
+$stream = new MemoryStream();
 
 $generator = function ($stream) {
     yield $stream->write("This is just a test.\nThis will not be read.");
@@ -281,17 +273,17 @@ $coroutine = new Coroutine($generator($stream));
 Loop\run();
 ```
 
-## Sink
+## MemorySink
 
-`Icicle\Stream\Sink` acts as a buffered sink with a seekable read/write pointer. All data written to the sink remains in the sink. The read/write pointer may be moved anywhere within the buffered sink using `seek()`. The current position of the pointer may be determined with `tell()`. Since all data remains in the sink, the entire length of the sink is available with `getLength()`.
+`Icicle\Stream\MemorySink` acts as a buffered sink with a seekable read/write pointer. All data written to the sink remains in the sink. The read/write pointer may be moved anywhere within the buffered sink using `seek()`. The current position of the pointer may be determined with `tell()`. Since all data remains in the sink, the entire length of the sink is available with `getLength()`.
 
 ```php
 use Icicle\Coroutine;
 use Icicle\Loop;
-use Icicle\Stream\Sink;
+use Icicle\Stream\MemorySink;
 
 $coroutine = Coroutine\create(function () {
-    $sink = new Sink();
+    $sink = new MemorySink();
 
     yield $sink->write("This is just a test.\n");
 
@@ -306,3 +298,197 @@ $coroutine = Coroutine\create(function () {
 
 echo $coroutine->wait(); // Echoes "This is just a sink test."
 ```
+
+## StreamResourceInterface
+
+All stream resource (pipe) classes in this package (and some other packages suck as [socket](https://github.com/icicleio/socket)) implement `Icicle\Stream\StreamResourceInterface`. This interface extends `Icicle\Stream\StreamInterface`.
+
+#### getResource()
+
+```php
+StreamResourceInterface::getResource(): resource
+```
+
+Returns the underlying PHP stream resource.
+
+---
+
+#### close()
+
+```php
+StreamResourceInterface::close(): void
+```
+
+Closes the stream resource, making it unreadable or unwritable.
+
+## ReadablePipe
+
+`Icicle\Stream\Pipe\ReadablePipe` implements `Icicle\Stream\ReadableStreamInterface`, so it is interoperable with any other class implementing one of the stream interfaces.
+
+When the other end of the connection is closed and a read is pending, that read will be fulfilled with an empty string. Subsequent reads will then reject with an instance of `Icicle\Stream\Exception\UnreadableException` and `isReadable()` will return `false`.
+
+#### ReadablePipe Constructor
+
+```php
+$stream = new ReadablePipe(resource $resource)
+```
+
+Creates a readable stream from the given stream resource (note only stream resources created from pipes and sockets are supported, *not* file streams).
+
+## WritablePipe
+
+`Icicle\Stream\Pipe\WritablePipe` implements `Icicle\Stream\WritableStreamInterface`, so it is interoperable with any other class implementing one of the stream interfaces.
+
+#### WritablePipe Constructor
+
+```php
+$stream = new WritablePipe(resource $resource)
+```
+
+Creates a writable stream from the given stream resource (note only stream resources created from pipes and sockets are supported, *not* file streams).
+
+## DuplexPipe
+
+`Icicle\Stream\Pipe\DuplexPipe` implements `Icicle\Stream\DuplexStreamInterface`, making it both a readable stream and a writable stream.
+
+#### DuplexPipe Constructor
+
+```php
+$stream = new DuplexPipe(resource $resource)
+```
+
+Creates a duplex stream from the given stream resource (note only stream resources created from pipes and sockets are supported, *not* file streams).
+
+## Functions
+
+#### Stream\pipe()
+
+```php
+Icicle\Stream\pipe(
+    ReadableStreamInterface $source
+    WritableStreamInterface $dest,
+    bool $end = true,
+    int $length = 0,
+    string|null $byte = null
+    float $timeout = 0
+): Generator
+```
+
+Returns a generator that should be used within a coroutine or used to create a new coroutine. Pipes all data read from this stream to the writable stream. If `$length` is not `0`, only `$length` bytes will be piped to the writable stream.  If `$byte` is not `null`, piping will end once `$byte` is encountered in the stream. The returned promise is fulfilled with the number of bytes piped once the writable stream is no longer writable, `$length` bytes have been piped, or `$byte` is encountered in the stream.
+
+Resolution | Type | Description
+:-: | :-- | :--
+Fulfilled | `int` | Fulfilled when the writable stream is no longer writable or when `$length` bytes have been piped or `$byte` is read from the stream.
+Rejected | `Icicle\Stream\Exception\BusyError` | If a read was already pending on the stream.
+Rejected | `Icicle\Stream\Exception\UnreadableException` | If the stream is no longer readable.
+Rejected | `Icicle\Stream\Exception\ClosedException` | If the stream is unexpectedly closed.
+Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the stream times out.
+
+---
+
+#### Stream\readTo()
+
+```php
+Icicle\Stream\readTo(
+    ReadableStreamInterface $source
+    int $length,
+    float $timeout = 0
+): Generator
+```
+
+Returns a generator that should be used within a coroutine or used to create a new coroutine. Reads data from the given readable stream until the given number of bytes has been read from the stream.
+
+Resolution | Type | Description
+:-: | :-- | :--
+Fulfilled | `string` | Fulfilled when the given number of bytes is read from the stream.
+Rejected | `Icicle\Stream\Exception\BusyError` | If a read was already pending on the stream.
+Rejected | `Icicle\Stream\Exception\UnreadableException` | If the stream is no longer readable.
+Rejected | `Icicle\Stream\Exception\ClosedException` | If the stream is unexpectedly closed.
+Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the stream times out.
+
+---
+
+#### Stream\readUntil()
+
+```php
+Icicle\Stream\readUntil(
+    ReadableStreamInterface $source
+    string $needle,
+    int $maxlength = 0,
+    float $timeout = 0
+): Generator
+```
+
+Returns a generator that should be used within a coroutine or used to create a new coroutine. Reads data from the given readable stream until the given string of bytes is read from the stream or the max length is reached. The matched string of bytes is included in the result string.
+
+Resolution | Type | Description
+:-: | :-- | :--
+Fulfilled | `string` | Fulfilled when the given string is read from the stream or the max length is reached.
+Rejected | `Icicle\Stream\Exception\BusyError` | If a read was already pending on the stream.
+Rejected | `Icicle\Stream\Exception\UnreadableException` | If the stream is no longer readable.
+Rejected | `Icicle\Stream\Exception\ClosedException` | If the stream is unexpectedly closed.
+Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the stream times out.
+
+---
+
+#### Stream\readAll()
+
+```php
+Icicle\Stream\readAll(
+    ReadableStreamInterface $source
+    int $maxlength = 0,
+    float $timeout = 0
+): Generator
+```
+
+Returns a generator that should be used within a coroutine or used to create a new coroutine. Reads data from the given readable stream until stream is no longer readable or the max length is reached.
+
+Resolution | Type | Description
+:-: | :-- | :--
+Fulfilled | `string` | Fulfilled when the stream is no longer readable or the max length is reached.
+Rejected | `Icicle\Stream\Exception\BusyError` | If a read was already pending on the stream.
+Rejected | `Icicle\Stream\Exception\UnreadableException` | If the stream is no longer readable.
+Rejected | `Icicle\Stream\Exception\ClosedException` | If the stream is unexpectedly closed.
+Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the stream times out.
+
+---
+
+#### Stream\pair()
+
+```php
+Icicle\Stream\pair(): resource[]
+```
+
+Returns a pair of connected stream socket resources.
+
+---
+
+#### Stream\stdin()
+
+```php
+Icicle\Stream\stdin(): ReadableStreamInterface
+```
+
+Returns a global readable stream instance for STDIN. 
+
+---
+
+#### Stream\stdout()
+
+```php
+Icicle\Stream\stdout(): WritableStreamInterface
+```
+
+Returns a global writable stream instance for STDOUT. 
+
+---
+
+#### Stream\stderr()
+
+```php
+Icicle\Stream\stderr(): WritableStreamInterface
+```
+
+Returns a global writable stream instance for STDERR. 
+
+---

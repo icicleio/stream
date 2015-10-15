@@ -16,7 +16,6 @@ use Icicle\Stream\Exception\{
     UnseekableException,
     UnwritableException
 };
-use Icicle\Stream\Structures\Buffer;
 
 /**
  * Acts as a buffered sink with a seekable read/write pointer. All data written to the sink remains in the sink. The
@@ -24,10 +23,8 @@ use Icicle\Stream\Structures\Buffer;
  * may be determined with tell(). Since all data remains in the sink, the entire length of the sink is available with
  * getLength().
  */
-class Sink implements DuplexStreamInterface, SeekableStreamInterface
+class MemorySink implements DuplexStreamInterface, SeekableStreamInterface
 {
-    use PipeTrait;
-
     /**
      * @var bool
      */
@@ -49,11 +46,13 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     private $iterator;
 
     /**
-     * Initializes empty sink.
+     * Initializes a sink with the given data.
+     *
+     * @param string $data
      */
-    public function __construct()
+    public function __construct(string $data = '')
     {
-        $this->buffer = new Buffer();
+        $this->buffer = new Structures\Buffer($data);
         $this->iterator = $this->buffer->getIterator();
     }
 
@@ -92,7 +91,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
         }
 
         if (0 > $length) {
-            $length = 0;
+            throw new InvalidArgumentError('The length should be a positive integer.');
         }
 
         $byte = strlen($byte) ? $byte[0] : null;
@@ -237,7 +236,7 @@ class Sink implements DuplexStreamInterface, SeekableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function getLength()
+    public function getLength(): int
     {
         return $this->buffer->getLength();
     }

@@ -1,5 +1,20 @@
 # Changelog
 
+### v0.4.0
+
+- New Features
+    - Added `\Icicle\Stream\StreamResourceInterface` and `\Icicle\Stream\StreamResource` as a basis for classes working with PHP stream resources.
+    - Added `\Icicle\Stream\Pipe\ReadablePipe`, `\Icicle\Stream\Pipe\WritablePipe`, and `\Icicle\Stream\Pipe\DuplexPipe` for using a PHP stream resource as a non-blocking stream (only compatible with streams from pipes and sockets, *not* files).
+    - Functions for accessing streams for STDIN, STDOUT, and STDERR were added, `\Icicle\Stream\stdin()`,`\Icicle\Stream\stdout()`, `\Icicle\Stream\stderr()`.
+    - Functions for reading from streams more easily were added: `\Icicle\Stream\readTo()`, `\Icicle\Stream\readUntil()`, `\Icicle\Stream\readAll()`.
+    - Added `\Icicle\Stream\pair()` function that returns a pair of connected stream resources (useful with `DuplexPipe`).
+
+- Changes
+    - `pipe()` is no longer a method of `\Icicle\Stream\ReadableStreamInterface`. Use the function `\Icicle\Stream\pipe()` for the same functionality.
+    - Renamed `\Icicle\Stream\Stream` to `\Icicle\Stream\MemoryStream` and `\Icicle\Stream\Sink` to `\Icicle\Stream\MemorySink`.
+
+---
+
 ### v0.3.0
 
 - Changes

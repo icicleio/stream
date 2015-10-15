@@ -26,6 +26,9 @@
             "dev-master": "2.0.x-dev"
         }
     },
+    "suggest": {
+        "ext-mbstring": "Enables encoding-aware text stream reading."
+    },
     "autoload": {
         "psr-4": {
             "Icicle\\Stream\\": "src"
@@ -34,6 +37,9 @@
     "autoload-dev": {
         "psr-4": {
             "Icicle\\Tests\\Stream\\": "tests"
-        }
+        },
+        "files": [
+            "src/functions.php"
+        ]
     }
 }

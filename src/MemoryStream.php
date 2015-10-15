@@ -11,17 +11,14 @@ namespace Icicle\Stream;
 
 use Icicle\Promise\Deferred;
 use Icicle\Stream\Exception\{BusyError, ClosedException, UnreadableException, UnwritableException};
-use Icicle\Stream\Structures\Buffer;
 
 /**
  * Serves as buffer that implements the stream interface, allowing consumers to be notified when data is available in
  * the buffer. This class by itself is not particularly useful, but it can be extended to add functionality upon reading 
  * or writing, as well as acting as an example of how stream classes can be implemented.
  */
-class Stream implements DuplexStreamInterface
+class MemoryStream implements DuplexStreamInterface
 {
-    use PipeTrait;
-
     /**
      * @var \Icicle\Stream\Structures\Buffer
      */
@@ -65,10 +62,11 @@ class Stream implements DuplexStreamInterface
     /**
      * @param int $hwm High water mark. If the internal buffer has more than $hwm bytes, writes to the stream will
      *     return pending promises until the data is consumed.
+     * @param string $data
      */
-    public function __construct(int $hwm = 0)
+    public function __construct(int $hwm = 0, string $data = '')
     {
-        $this->buffer = new Buffer();
+        $this->buffer = new Structures\Buffer($data);
         $this->hwm = (int) $hwm;
         if (0 > $this->hwm) {
             $this->hwm = 0;
@@ -137,7 +135,7 @@ class Stream implements DuplexStreamInterface
 
         $this->length = $length;
         if (0 > $this->length) {
-            $this->length = 0;
+            throw new InvalidArgumentError('The length should be a positive integer.');
         }
 
         $this->byte = strlen($byte) ? $byte[0] : null;
@@ -231,7 +229,6 @@ class Stream implements DuplexStreamInterface
      *
      * @resolve int Number of bytes written to the stream.
      *
-     * @throws \Icicle\Stream\Exception\BusyError If the stream was already waiting to write.
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is not longer writable.
      */
     protected function send(string $data, float $timeout = 0, bool $end = false): \Generator
