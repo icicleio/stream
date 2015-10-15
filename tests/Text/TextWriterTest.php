@@ -15,6 +15,9 @@ use Icicle\Stream\MemoryStream;
 use Icicle\Stream\Text\TextWriter;
 use Icicle\Tests\Stream\TestCase;
 
+/**
+ * @requires extension mbstring
+ */
 class TextWriterTest extends TestCase
 {
     public function testGetStream()
@@ -63,7 +66,7 @@ class TextWriterTest extends TestCase
     {
         Coroutine\create(function () {
             $stream = new MemoryStream();
-            $writer = new TextWriter($stream, true);
+            $writer = new TextWriter($stream, 0, 'UTF-8', true);
 
             yield $writer->write(42);
 
@@ -77,7 +80,7 @@ class TextWriterTest extends TestCase
     {
         Coroutine\create(function () {
             $stream = new MemoryStream();
-            $writer = new TextWriter($stream, true);
+            $writer = new TextWriter($stream, 0, 'UTF-8', true);
 
             yield $writer->writeLine("hello");
 
@@ -91,7 +94,7 @@ class TextWriterTest extends TestCase
     {
         Coroutine\create(function () {
             $stream = new MemoryStream();
-            $writer = new TextWriter($stream, true);
+            $writer = new TextWriter($stream, 0, 'UTF-8', true);
 
             yield $writer->printf("Hello, %d %s.", 42, "fools");
 
@@ -105,7 +108,7 @@ class TextWriterTest extends TestCase
     {
         Coroutine\create(function () {
             $stream = new MemoryStream();
-            $writer = new TextWriter($stream, true);
+            $writer = new TextWriter($stream, 0, 'UTF-8', true);
 
             yield $writer->printLine("Hello, %d %s.", 42, "fools");
 

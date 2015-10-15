@@ -29,6 +29,11 @@ class TextWriter implements StreamInterface
     private $buffer;
 
     /**
+     * @var float The timeout for write operations. Use 0 for no timeout.
+     */
+    private $timeout;
+
+    /**
      * @var bool Indicates if the buffer should be flushed on every write.
      */
     private $autoFlush = false;
@@ -42,18 +47,24 @@ class TextWriter implements StreamInterface
      * Creates a new stream writer for a given stream.
      *
      * @param \Icicle\Stream\WritableStreamInterface $stream The stream to write to.
+     * @param float|int $timeout The timeout for write operations. Use 0 for no timeout.
+     * @param string $encoding
      * @param bool $autoFlush Indicates if the buffer should be flushed on every write.
      * @param int $bufferSize The max buffer size in bytes.
      */
     public function __construct(
         WritableStreamInterface $stream,
+        float $timeout = 0,
+        string $encoding = 'UTF-8',
         bool $autoFlush = false,
         int $bufferSize = self::DEFAULT_BUFFER_SIZE
     ) {
         $this->stream = $stream;
         $this->buffer = new Buffer();
+        $this->timeout = $timeout;
         $this->autoFlush = $autoFlush;
         $this->bufferSize = $bufferSize;
+        $this->newLine = mb_convert_encoding("\n", $encoding, 'UTF-8');
     }
 
     /**
@@ -92,20 +103,21 @@ class TextWriter implements StreamInterface
      *
      * Flushes the contents of the internal buffer to the underlying stream.
      *
-     * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
-     *     and the stream is closed if the data cannot be written to the stream. Use 0 for no timeout.
-     *
      * @return \Generator
+     *
+     * @resolve int Number of bytes written to the stream.
      *
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function flush(float $timeout = 0): \Generator
+    public function flush(): \Generator
     {
-        if (!$this->buffer->isEmpty()) {
-            return yield from $this->stream->write($this->buffer->drain(), $timeout);
+        if ($this->buffer->isEmpty()) {
+            return 0;
         }
+
+        return yield from $this->stream->write($this->buffer->drain(), $this->timeout);
     }
 
     /**
@@ -118,23 +130,23 @@ class TextWriter implements StreamInterface
      * buffer will be flushed to the stream.
      *
      * @param mixed $text A printable value that can be coerced to a string.
-     * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
-     *     and the stream is closed if the data cannot be written to the stream. Use 0 for no timeout.
      *
      * @return \Generator
+     *
+     * @resolve int Number of bytes written to the buffer.
      *
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function write(string $text, float $timeout = 0): \Generator
+    public function write(string $text): \Generator
     {
         $length = strlen($text);
 
         $this->buffer->push($text);
 
         if ($this->autoFlush || $this->buffer->getLength() > $this->bufferSize) {
-            yield from $this->flush($timeout);
+            yield from $this->flush();
         }
 
         return $length;
@@ -148,18 +160,18 @@ class TextWriter implements StreamInterface
      * The given value will be coerced to a string before being written.
      *
      * @param mixed $text A printable value that can be coerced to a string.
-     * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
-     *     and the stream is closed if the data cannot be written to the stream. Use 0 for no timeout.
      *
      * @return \Generator
+     *
+     * @resolve int Number of bytes written to the buffer.
      *
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function writeLine(string $text, float $timeout = 0): \Generator
+    public function writeLine(string $text): \Generator
     {
-        return yield from $this->write($text . PHP_EOL, $timeout);
+        return yield from $this->write($text . $this->newLine, $this->timeout);
     }
 
     /**
@@ -175,11 +187,13 @@ class TextWriter implements StreamInterface
      *
      * @return \Generator
      *
+     * @resolve int Number of bytes written to the buffer.
+     *
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      *
-     * @see http://php.net/prinf
+     * @see http://php.net/printf
      */
     public function printf(string $format, ...$args): \Generator
     {
@@ -200,15 +214,17 @@ class TextWriter implements StreamInterface
      *
      * @return \Generator
      *
+     * @resolve int Number of bytes written to the buffer.
+     *
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      *
-     * @see http://php.net/prinf
+     * @see http://php.net/printf
      */
     public function printLine(string $format, ...$args): \Generator
     {
-        $formatted = sprintf($format, ...$args);
-        return yield from $this->write($formatted . PHP_EOL);
+        $formatted = call_user_func_array('sprintf', func_get_args());
+        yield $this->write($formatted . $this->newLine);
     }
 }
