@@ -62,7 +62,7 @@ class TextReader implements StreamInterface
         $this->stream = $stream;
         $this->encoding = $encoding;
         $this->buffer = new Buffer();
-        $this->newLine = mb_convert_encoding("\n", $encoding, 'ASCII');
+        $this->newLine = mb_convert_encoding("\n", $encoding, 'UTF-8');
     }
 
     /**
