@@ -6,7 +6,7 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 use Icicle\Coroutine\Coroutine;
 use Icicle\Loop;
 use Icicle\Stream\DuplexStreamInterface;
-use Icicle\Stream\Stream;
+use Icicle\Stream\MemoryStream;
 
 $generator = function (DuplexStreamInterface $stream) {
     yield $stream->write("This is just a test.\nThis will not be read.");
@@ -16,7 +16,7 @@ $generator = function (DuplexStreamInterface $stream) {
     echo $data; // Echoes "This is just a test."
 };
 
-$stream = new Stream();
+$stream = new MemoryStream();
 $coroutine = new Coroutine($generator($stream));
 
 Loop\run();

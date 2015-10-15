@@ -5,10 +5,10 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 use Icicle\Coroutine;
 use Icicle\Loop;
-use Icicle\Stream\Sink;
+use Icicle\Stream\MemorySink;
 
 $coroutine = Coroutine\create(function () {
-    $sink = new Sink();
+    $sink = new MemorySink();
 
     yield $sink->write("This is just a test.\n");
 
