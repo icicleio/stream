@@ -23,8 +23,6 @@ use Icicle\Stream\Structures\Buffer;
  */
 class TextReader implements StreamInterface
 {
-    const DEFAULT_CHUNK_SIZE = 4096;
-
     /**
      * @var \Icicle\Stream\ReadableStreamInterface The stream to read from.
      */
@@ -117,7 +115,7 @@ class TextReader implements StreamInterface
     {
         // Read chunks of bytes until we reach the desired length.
         while (mb_strlen((string)$this->buffer, $this->encoding) < $length && $this->stream->isReadable()) {
-            $this->buffer->push(yield $this->stream->read(self::DEFAULT_CHUNK_SIZE, null, $timeout));
+            $this->buffer->push(yield $this->stream->read(0, null, $timeout));
         }
 
         yield mb_substr((string)$this->buffer, 0, min($length, $this->buffer->getLength()), $this->encoding);
@@ -257,7 +255,7 @@ class TextReader implements StreamInterface
 
             // Read more into the buffer if possible.
             if ($this->stream->isReadable()) {
-                $this->buffer->push(yield $this->stream->read(self::DEFAULT_CHUNK_SIZE, null, $timeout));
+                $this->buffer->push(yield $this->stream->read(0, null, $timeout));
             } else {
                 // Format string can't be satisfied.
                 yield null;
