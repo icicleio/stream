@@ -28,7 +28,7 @@ You can also manually edit `composer.json` to add this library as a project requ
 // composer.json
 {
     "require": {
-        "icicleio/stream": "^0.3"
+        "icicleio/stream": "^0.4"
     }
 }
 ```
@@ -58,8 +58,14 @@ Streams represent a common promise-based API that may be implemented by classes 
     - [seek()](#seek) - Moves the stream pointer.
     - [tell()](#tell) - Returns the current position of the stream pointer.
     - [getLength()](#getlength) - Returns the length of the stream if known.
-- [Stream](#stream) - Buffer that implements `Icicle\Stream\DuplexStreamInterface`.
-- [Sink](#sink) - Memory buffer that implements `Icicle\Stream\DuplexStreamInterface` and `Icicle\Stream\SeekableStreamInterface`.
+- [MemoryStream](#memorystream) - Buffer that implements `Icicle\Stream\DuplexStreamInterface`.
+- [MemorySink](#memorysink) - Memory buffer that implements `Icicle\Stream\DuplexStreamInterface` and `Icicle\Stream\SeekableStreamInterface`.
+- [ReadablePipe](#readablepipe)
+    - [ReadablePipe Constructor](#readablepipe-constructor) - Creates a readable pipe from a stream resource.
+- [WritablePipe](#writablepipe)
+    - [WritablePipe Constructor](#writablepipe-constructor) - Creates a writable stream from a stream resource.
+- [DuplexPipe](#duplexpipe)
+    - [DuplexPipe Constructor](#duplexpipe-constructor) - Creates a duplex stream from a stream resource.
 
 #### Function prototypes
 
@@ -250,23 +256,23 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If writing to the strea
 #### getLength()
 
 ```php
-SeekableStreamInterface::getLength(): int|null
+SeekableStreamInterface::getLength(): int
 ```
 
-Returns the total length of the stream if known, otherwise null. Value returned may not reflect a pending write operation.
+Returns the total length of the stream if known, otherwise -1. Value returned may not reflect a pending write operation.
 
-## Stream
+## MemoryStream
 
-`Icicle\Stream\Stream` objects act as a buffer that implements `Icicle\Stream\DuplexStreamInterface`, allowing consumers to be notified when data is available in the buffer. This class by itself is not particularly useful, but it can be extended to add functionality upon reading or writing, as well as acting as an example of how stream classes can be implemented.
+`Icicle\Stream\MemoryStream` objects act as a buffer that implements `Icicle\Stream\DuplexStreamInterface`, allowing consumers to be notified when data is available in the buffer. This class by itself is not particularly useful, but it can be extended to add functionality upon reading or writing, as well as acting as an example of how stream classes can be implemented.
 
-Anything written to an instance of `Icicle\Stream\Stream` is immediately readable.
+Anything written to an instance of `Icicle\Stream\MemoryStream` is immediately readable.
 
 ```php
 use Icicle\Coroutine\Coroutine;
 use Icicle\Loop;
-use Icicle\Stream\Stream;
+use Icicle\Stream\MemoryStream;
 
-$stream = new Stream();
+$stream = new MemoryStream();
 
 $generator = function ($stream) {
     yield $stream->write("This is just a test.\nThis will not be read.");
@@ -281,17 +287,17 @@ $coroutine = new Coroutine($generator($stream));
 Loop\run();
 ```
 
-## Sink
+## MemorySink
 
-`Icicle\Stream\Sink` acts as a buffered sink with a seekable read/write pointer. All data written to the sink remains in the sink. The read/write pointer may be moved anywhere within the buffered sink using `seek()`. The current position of the pointer may be determined with `tell()`. Since all data remains in the sink, the entire length of the sink is available with `getLength()`.
+`Icicle\Stream\MemorySink` acts as a buffered sink with a seekable read/write pointer. All data written to the sink remains in the sink. The read/write pointer may be moved anywhere within the buffered sink using `seek()`. The current position of the pointer may be determined with `tell()`. Since all data remains in the sink, the entire length of the sink is available with `getLength()`.
 
 ```php
 use Icicle\Coroutine;
 use Icicle\Loop;
-use Icicle\Stream\Sink;
+use Icicle\Stream\MemorySink;
 
 $coroutine = Coroutine\create(function () {
-    $sink = new Sink();
+    $sink = new MemorySink();
 
     yield $sink->write("This is just a test.\n");
 
@@ -306,3 +312,42 @@ $coroutine = Coroutine\create(function () {
 
 echo $coroutine->wait(); // Echoes "This is just a sink test."
 ```
+
+## ReadablePipe
+
+`Icicle\Stream\Pipe\ReadablePipe` implements `Icicle\Stream\ReadableStreamInterface`, so it is interoperable with any other class implementing one of the stream interfaces.
+
+When the other end of the connection is closed and a read is pending, that read will be fulfilled with an empty string. Subsequent reads will then reject with an instance of `Icicle\Stream\Exception\UnreadableException` and `isReadable()` will return `false`.
+
+#### ReadablePipe Constructor
+
+```php
+$stream = new ReadablePipe(resource $resource)
+```
+
+Creates a readable stream from the given stream resource (note only stream resources created from pipes and sockets are supported, *not* file streams).
+
+## WritablePipe
+
+`Icicle\Stream\Pipe\WritablePipe` implements `Icicle\Stream\WritableStreamInterface`, so it is interoperable with any other class implementing one of the stream interfaces.
+
+#### WritablePipe Constructor
+
+```php
+$stream = new WritablePipe(resource $resource)
+```
+
+Creates a writable stream from the given stream resource (note only stream resources created from pipes and sockets are supported, *not* file streams).
+
+## DuplexPipe
+
+`Icicle\Stream\Pipe\DuplexPipe` implements `Icicle\Stream\DuplexStreamInterface`, making it both a readable stream and a writable stream.
+
+#### DuplexPipe Constructor
+
+```php
+$stream = new DuplexPipe(resource $resource)
+```
+
+Creates a duplex stream from the given stream resource (note only stream resources created from pipes and sockets are supported, *not* file streams).
+
