@@ -15,6 +15,9 @@ use Icicle\Stream\MemoryStream;
 use Icicle\Stream\Text\TextReader;
 use Icicle\Tests\Stream\TestCase;
 
+/**
+ * @requires extension mbstring
+ */
 class TextReaderTest extends TestCase
 {
     /**

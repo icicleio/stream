@@ -15,6 +15,9 @@ use Icicle\Stream\MemoryStream;
 use Icicle\Stream\Text\TextWriter;
 use Icicle\Tests\Stream\TestCase;
 
+/**
+ * @requires extension mbstring
+ */
 class TextWriterTest extends TestCase
 {
     public function testGetStream()
