@@ -7,7 +7,7 @@
  * @license MIT See the LICENSE file that was distributed with this source code for more information.
  */
 
-namespace Icicle\Tests\Stream;
+namespace Icicle\Tests\Stream\Pipe;
 
 use Exception;
 use Icicle\Coroutine\Coroutine;
@@ -17,8 +17,9 @@ use Icicle\Stream\Exception\BusyError;
 use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\FailureException;
 use Icicle\Stream\Exception\UnreadableException;
-use Icicle\Stream\ReadableStreamResource;
-use Icicle\Stream\WritableStreamResource;
+use Icicle\Stream\Pipe\ReadablePipe;
+use Icicle\Stream\Pipe\WritablePipe;
+use Icicle\Tests\Stream\StreamResourceTest;
 
 class ReadablePipeTest extends StreamResourceTest
 {
@@ -29,9 +30,9 @@ class ReadablePipeTest extends StreamResourceTest
     {
         list($read, $write) = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
 
-        $readable = new ReadableStreamResource($read);
+        $readable = new ReadablePipe($read);
 
-        $writable = $this->getMockBuilder(WritableStreamResource::class)
+        $writable = $this->getMockBuilder(WritablePipe::class)
             ->disableOriginalConstructor()
             ->getMock();
 

@@ -7,7 +7,7 @@
  * @license MIT See the LICENSE file that was distributed with this source code for more information.
  */
 
-namespace Icicle\Stream;
+namespace Icicle\Stream\Pipe;
 
 use Exception;
 use Icicle\Loop;
@@ -17,8 +17,10 @@ use Icicle\Stream\Exception\BusyError;
 use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\FailureException;
 use Icicle\Stream\Exception\UnreadableException;
+use Icicle\Stream\ReadableStreamInterface;
+use Icicle\Stream\StreamResource;
 
-class ReadableStreamResource extends StreamResource implements ReadableStreamInterface
+class ReadablePipe extends StreamResource implements ReadableStreamInterface
 {
     /**
      * @var \Icicle\Promise\Deferred|null
@@ -150,9 +152,9 @@ class ReadableStreamResource extends StreamResource implements ReadableStreamInt
      *
      * @resolve string Empty string.
      *
-     * @throws \Icicle\Pipe\Exception\FailureException If the stream buffer is not empty.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
+     * @throws \Icicle\Stream\Exception\FailureException If the stream buffer is not empty.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream has been closed.
      */

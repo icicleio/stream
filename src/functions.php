@@ -11,6 +11,8 @@ namespace Icicle\Stream;
 
 use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\UnwritableException;
+use Icicle\Stream\Pipe\ReadablePipe;
+use Icicle\Stream\Pipe\WritablePipe;
 
 if (!function_exists(__NAMESPACE__ . '\pipe')) {
     /**
@@ -211,7 +213,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
         static $pipe;
 
         if (null === $pipe) {
-            $pipe = new ReadableStreamResource(STDIN);
+            $pipe = new ReadablePipe(STDIN);
         }
 
         return $pipe;
@@ -227,7 +229,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
         static $pipe;
 
         if (null === $pipe) {
-            $pipe = new WritableStreamResource(STDOUT);
+            $pipe = new WritablePipe(STDOUT);
         }
 
         return $pipe;
@@ -243,7 +245,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
         static $pipe;
 
         if (null === $pipe) {
-            $pipe = new WritableStreamResource(STDERR);
+            $pipe = new WritablePipe(STDERR);
         }
 
         return $pipe;

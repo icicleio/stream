@@ -7,7 +7,7 @@
  * @license MIT See the LICENSE file that was distributed with this source code for more information.
  */
 
-namespace Icicle\Stream;
+namespace Icicle\Stream\Pipe;
 
 use Exception;
 use Icicle\Loop;
@@ -16,8 +16,10 @@ use Icicle\Promise\Exception\TimeoutException;
 use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\FailureException;
 use Icicle\Stream\Exception\UnwritableException;
+use Icicle\Stream\StreamResource;
+use Icicle\Stream\WritableStreamInterface;
 
-class WritableStreamResource extends StreamResource implements WritableStreamInterface
+class WritablePipe extends StreamResource implements WritableStreamInterface
 {
     /**
      * Queue of data to write and promises to resolve when that data is written (or fails to write).
