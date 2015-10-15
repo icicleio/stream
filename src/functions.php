@@ -9,11 +9,17 @@
 
 namespace Icicle\Stream;
 
+use Icicle\Stream\Exception\Error;
 use Icicle\Stream\Exception\FailureException;
 use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\UnwritableException;
 use Icicle\Stream\Pipe\ReadablePipe;
 use Icicle\Stream\Pipe\WritablePipe;
+
+// @codeCoverageIgnoreStart
+if (strlen('…') === 1) {
+    throw new Error('The mbstring.overload ini setting is enabled. It must be disable to use the stream package.');
+} // @codeCoverageIgnoreEnd
 
 if (!function_exists(__NAMESPACE__ . '\pipe')) {
     /**
