@@ -7,9 +7,11 @@
  * @license MIT See the LICENSE file that was distributed with this source code for more information.
  */
 
-namespace Icicle\Stream;
+namespace Icicle\Stream\Text;
 
+use Icicle\Stream\StreamInterface;
 use Icicle\Stream\Structures\Buffer;
+use Icicle\Stream\WritableStreamInterface;
 
 /**
  * Writes text to a stream.

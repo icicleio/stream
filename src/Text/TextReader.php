@@ -7,10 +7,13 @@
  * @license MIT See the LICENSE file that was distributed with this source code for more information.
  */
 
-namespace Icicle\Stream;
+namespace Icicle\Stream\Text;
 
+use Icicle\Stream;
 use Icicle\Stream\Exception\Error;
 use Icicle\Stream\Exception\InvalidArgumentError;
+use Icicle\Stream\ReadableStreamInterface;
+use Icicle\Stream\StreamInterface;
 use Icicle\Stream\Structures\Buffer;
 
 /**
@@ -176,7 +179,7 @@ class TextReader implements StreamInterface
         }
 
         while ($this->stream->isReadable()) {
-            $buffer = (yield $this->stream->read(0, $newLineTail, $timeout));
+            $buffer = (yield Stream\readUntil($this->stream, $this->newLine, 0, $timeout));
 
             if (($pos = strpos($buffer, $this->newLine)) !== false) {
                 yield $this->buffer->drain() . substr($buffer, 0, $pos + 1);
@@ -193,6 +196,8 @@ class TextReader implements StreamInterface
      *
      * Reads all characters from the stream until the end of the stream is reached.
      *
+     * If the stream ends in the middle of a character, the left over bytes will be discarded.
+     *
      * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
      *     if no data is received. Use 0 for no timeout.
      *
@@ -207,11 +212,8 @@ class TextReader implements StreamInterface
      */
     public function readAll($timeout = 0)
     {
-        while ($this->stream->isReadable()) {
-            $this->buffer->push(yield $this->stream->read(0, null, $timeout));
-        }
-
-        yield $this->buffer->drain();
+        $this->buffer->push(yield Stream\readAll($this->stream, 0, $timeout));
+        yield mb_strcut($this->buffer->drain(), 0);
     }
 
     /**

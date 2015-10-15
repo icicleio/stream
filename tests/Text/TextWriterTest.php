@@ -7,12 +7,13 @@
  * @license MIT See the LICENSE file that was distributed with this source code for more information.
  */
 
-namespace Icicle\Tests\Stream;
+namespace Icicle\Tests\Stream\Text;
 
 use Icicle\Coroutine;
 use Icicle\Loop;
 use Icicle\Stream\MemoryStream;
-use Icicle\Stream\TextWriter;
+use Icicle\Stream\Text\TextWriter;
+use Icicle\Tests\Stream\TestCase;
 
 class TextWriterTest extends TestCase
 {
