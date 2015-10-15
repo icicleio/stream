@@ -6,8 +6,9 @@
     - Added `\Icicle\Stream\StreamResourceInterface` and `\Icicle\Stream\StreamResource` as a basis for classes working with PHP stream resources.
     - Added `\Icicle\Stream\Pipe\ReadablePipe`, `\Icicle\Stream\Pipe\WritablePipe`, and `\Icicle\Stream\Pipe\DuplexPipe` for using a PHP stream resource as a non-blocking stream (only compatible with streams from pipes and sockets, *not* files).
     - Functions for accessing streams for STDIN, STDOUT, and STDERR were added, `\Icicle\Stream\stdin()`,`\Icicle\Stream\stdout()`, `\Icicle\Stream\stderr()`.
-    - Functions for reading from streams more easily were added: `\Icicle\Stream\readTo()`, `\Icicle\Stream\readUntil()`, `\Icicle\Stream\readAll()`.
+    - Functions for reading from streams more easily were added: `\Icicle\Stream\readTo()`, `\Icicle\Stream\readUntil()`, and `\Icicle\Stream\readAll()`.
     - Added `\Icicle\Stream\pair()` function that returns a pair of connected stream resources (useful with `DuplexPipe`).
+    - `\Icicle\Stream\Text\TextReader` and `\Icicle\Stream\Text\TextWriter` added for reading and writing streams of text in a given character encoding. These classes contain convenience methods for reading or writing based on characters rather than bytes.
 
 - Changes
     - `pipe()` is no longer a method of `\Icicle\Stream\ReadableStreamInterface`. Use the function `\Icicle\Stream\pipe()` for the same functionality.
