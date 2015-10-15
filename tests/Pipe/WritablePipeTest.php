@@ -45,7 +45,7 @@ class WritablePipeTest extends StreamResourceTest
                 if (0 === $length) {
                     $length = 8192;
                 }
-                yield fread($read, $length);
+                return yield fread($read, $length);
             }));
 
         $readable->method('close')

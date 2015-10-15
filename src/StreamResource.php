@@ -41,7 +41,7 @@ abstract class StreamResource implements StreamResourceInterface
      *
      * @return bool
      */
-    public function isOpen()
+    public function isOpen(): bool
     {
         return null !== $this->resource;
     }

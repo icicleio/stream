@@ -9,9 +9,7 @@
 
 namespace Icicle\Stream\Pipe;
 
-use Icicle\Stream\DuplexStreamInterface;
-use Icicle\Stream\Exception\UnwritableException;
-use Icicle\Stream\StreamResourceInterface;
+use Icicle\Stream\{DuplexStreamInterface, Exception\UnwritableException, StreamResourceInterface};
 
 class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
 {
@@ -37,7 +35,7 @@ class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
     /**
      * {@inheritdoc}
      */
-    public function isOpen()
+    public function isOpen(): bool
     {
         return $this->readable->isOpen() || $this->writable->isOpen();
     }
@@ -62,7 +60,7 @@ class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
     /**
      * {@inheritdoc}
      */
-    public function read($length = 0, $byte = null, $timeout = 0)
+    public function read(int $length = 0, string $byte = null, float $timeout = 0): \Generator
     {
         return $this->readable->read($length, $byte, $timeout);
     }
@@ -87,7 +85,7 @@ class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream has been closed.
      */
-    public function poll($timeout = 0)
+    public function poll(float $timeout = 0): \Generator
     {
         return $this->readable->poll($timeout);
     }
@@ -95,7 +93,7 @@ class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
     /**
      * {@inheritdoc}
      */
-    public function isReadable()
+    public function isReadable(): bool
     {
         return $this->readable->isReadable();
     }
@@ -103,7 +101,7 @@ class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
     /**
      * {@inheritdoc}
      */
-    public function write($data, $timeout = 0)
+    public function write(string $data, float $timeout = 0): \Generator
     {
         return $this->writable->write($data, $timeout);
     }
@@ -111,14 +109,14 @@ class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
     /**
      * {@inheritdoc}
      */
-    public function end($data = '', $timeout = 0)
+    public function end(string $data = '', float $timeout = 0): \Generator
     {
         if (!$this->writable->isWritable()) {
             throw new UnwritableException('The stream is no longer writable.');
         }
 
         try {
-            yield $this->writable->end($data, $timeout);
+            return yield from $this->writable->end($data, $timeout);
         } finally {
             $this->readable->close();
         }
@@ -137,7 +135,7 @@ class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream has been closed.
      */
-    public function await($timeout = 0)
+    public function await(float $timeout = 0): \Generator
     {
         return $this->writable->await($timeout);
     }
@@ -145,7 +143,7 @@ class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
     /**
      * {@inheritdoc}
      */
-    public function isWritable()
+    public function isWritable(): bool
     {
         return $this->writable->isWritable();
     }

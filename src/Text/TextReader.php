@@ -10,11 +10,8 @@
 namespace Icicle\Stream\Text;
 
 use Icicle\Stream;
-use Icicle\Stream\Exception\Error;
-use Icicle\Stream\Exception\InvalidArgumentError;
-use Icicle\Stream\ReadableStreamInterface;
-use Icicle\Stream\StreamInterface;
-use Icicle\Stream\Structures\Buffer;
+use Icicle\Stream\Exception\{Error, InvalidArgumentError};
+use Icicle\Stream\{ReadableStreamInterface, StreamInterface, Structures\Buffer};
 
 /**
  * Reads text from a stream.
@@ -49,7 +46,7 @@ class TextReader implements StreamInterface
      * @param \Icicle\Stream\ReadableStreamInterface $stream The stream to read from.
      * @param string $encoding The character encoding to use.
      */
-    public function __construct(ReadableStreamInterface $stream, $encoding = 'UTF-8')
+    public function __construct(ReadableStreamInterface $stream, string $encoding = 'UTF-8')
     {
         if (!extension_loaded('mbstring')) {
             throw new Error('The mbstring extension is not loaded.');
@@ -70,7 +67,7 @@ class TextReader implements StreamInterface
      *
      * @return \Icicle\Stream\ReadableStreamInterface
      */
-    public function getStream()
+    public function getStream(): ReadableStreamInterface
     {
         return $this->stream;
     }
@@ -80,7 +77,7 @@ class TextReader implements StreamInterface
      *
      * @return bool
      */
-    public function isOpen()
+    public function isOpen(): bool
     {
         return $this->stream->isOpen();
     }
@@ -111,14 +108,14 @@ class TextReader implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function peek($length = 1, $timeout = 0)
+    public function peek(int $length = 1, float $timeout = 0): \Generator
     {
         // Read chunks of bytes until we reach the desired length.
         while (mb_strlen((string) $this->buffer, $this->encoding) < $length && $this->stream->isReadable()) {
-            $this->buffer->push(yield $this->stream->read(0, null, $timeout));
+            $this->buffer->push(yield from $this->stream->read(0, null, $timeout));
         }
 
-        yield mb_substr((string) $this->buffer, 0, min($length, $this->buffer->getLength()), $this->encoding);
+        return mb_substr((string) $this->buffer, 0, min($length, $this->buffer->getLength()), $this->encoding);
     }
 
     /**
@@ -139,9 +136,9 @@ class TextReader implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function read($length = 1, $timeout = 0)
+    public function read(int $length = 1, float $timeout = 0): \Generator
     {
-        yield $this->buffer->shift(strlen(yield $this->peek($length, $timeout)));
+        return $this->buffer->shift(strlen(yield from $this->peek($length, $timeout)));
     }
 
     /**
@@ -165,24 +162,22 @@ class TextReader implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function readLine($timeout = 0)
+    public function readLine(float $timeout = 0): \Generator
     {
         $newLineSize = strlen($this->newLine);
 
         // Check if a new line is already in the buffer.
         if (($pos = $this->buffer->search($this->newLine)) !== false) {
-            yield $this->buffer->shift($pos + $newLineSize);
-            return;
+            return $this->buffer->shift($pos + $newLineSize);
         }
 
-        $this->buffer->push(yield Stream\readUntil($this->stream, $this->newLine, 0, $timeout));
+        $this->buffer->push(yield from Stream\readUntil($this->stream, $this->newLine, 0, $timeout));
 
         if (($pos = $this->buffer->search($this->newLine)) !== false) {
-            yield $this->buffer->shift($pos + $newLineSize);
-            return;
+            return $this->buffer->shift($pos + $newLineSize);
         }
 
-        yield $this->buffer->shift(strlen(mb_strcut((string) $this->buffer, 0, null, $this->encoding)));
+        return $this->buffer->shift(strlen(mb_strcut((string) $this->buffer, 0, null, $this->encoding)));
     }
 
     /**
@@ -205,10 +200,10 @@ class TextReader implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function readAll($maxlength = 0, $timeout = 0)
+    public function readAll(int $maxlength = 0, float $timeout = 0): \Generator
     {
-        $this->buffer->push(yield Stream\readAll($this->stream, $maxlength, $timeout));
-        yield $this->buffer->shift(strlen(mb_strcut((string) $this->buffer, 0, null, $this->encoding)));
+        $this->buffer->push(yield from Stream\readAll($this->stream, $maxlength, $timeout));
+        return $this->buffer->shift(strlen(mb_strcut((string) $this->buffer, 0, null, $this->encoding)));
     }
 
     /**
@@ -233,30 +228,28 @@ class TextReader implements StreamInterface
      *
      * @see http://php.net/sscanf
      */
-    public function scan($format, $timeout = 0)
+    public function scan(string $format, float $timeout = 0): \Generator
     {
         // Read from the stream chunk by chunk, attempting to satisfy the format
         // string each time until the format successfully parses or the end of
         // the stream is reached.
         while (true) {
-            $result = sscanf((string)$this->buffer, $format . '%n');
+            $result = sscanf((string) $this->buffer, $format . '%n');
             $length = $result ? array_pop($result) : null;
 
             // If the format string was satisfied, consume the used characters and
             // return the parsed results.
             if ($length !== null && $length < $this->buffer->getLength()) {
                 $this->buffer->shift($length);
-                yield $result;
-                return;
+                return $result;
             }
 
             // Read more into the buffer if possible.
             if ($this->stream->isReadable()) {
-                $this->buffer->push(yield $this->stream->read(0, null, $timeout));
+                $this->buffer->push(yield from $this->stream->read(0, null, $timeout));
             } else {
                 // Format string can't be satisfied.
-                yield [];
-                return;
+                return [];
             }
         }
     }

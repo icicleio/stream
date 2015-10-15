@@ -9,9 +9,7 @@
 
 namespace Icicle\Stream\Text;
 
-use Icicle\Stream\StreamInterface;
-use Icicle\Stream\Structures\Buffer;
-use Icicle\Stream\WritableStreamInterface;
+use Icicle\Stream\{StreamInterface, Structures\Buffer, WritableStreamInterface};
 
 /**
  * Writes text to a stream.
@@ -49,13 +47,13 @@ class TextWriter implements StreamInterface
      */
     public function __construct(
         WritableStreamInterface $stream,
-        $autoFlush = false,
-        $bufferSize = self::DEFAULT_BUFFER_SIZE
+        bool $autoFlush = false,
+        int $bufferSize = self::DEFAULT_BUFFER_SIZE
     ) {
         $this->stream = $stream;
         $this->buffer = new Buffer();
-        $this->autoFlush = (bool) $autoFlush;
-        $this->bufferSize = (int) $bufferSize;
+        $this->autoFlush = $autoFlush;
+        $this->bufferSize = $bufferSize;
     }
 
     /**
@@ -63,7 +61,7 @@ class TextWriter implements StreamInterface
      *
      * @return \Icicle\Stream\WritableStreamInterface
      */
-    public function getStream()
+    public function getStream(): WritableStreamInterface
     {
         return $this->stream;
     }
@@ -73,7 +71,7 @@ class TextWriter implements StreamInterface
      *
      * @return bool
      */
-    public function isOpen()
+    public function isOpen(): bool
     {
         return $this->stream->isOpen();
     }
@@ -103,10 +101,10 @@ class TextWriter implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function flush($timeout = 0)
+    public function flush(float $timeout = 0): \Generator
     {
         if (!$this->buffer->isEmpty()) {
-            yield $this->stream->write($this->buffer->drain(), $timeout);
+            return yield from $this->stream->write($this->buffer->drain(), $timeout);
         }
     }
 
@@ -129,13 +127,17 @@ class TextWriter implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function write($text, $timeout = 0)
+    public function write(string $text, float $timeout = 0): \Generator
     {
-        $this->buffer->push((string) $text);
+        $length = strlen($text);
+
+        $this->buffer->push($text);
 
         if ($this->autoFlush || $this->buffer->getLength() > $this->bufferSize) {
-            yield $this->flush($timeout);
+            yield from $this->flush($timeout);
         }
+
+        return $length;
     }
 
     /**
@@ -155,9 +157,9 @@ class TextWriter implements StreamInterface
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    public function writeLine($text, $timeout = 0)
+    public function writeLine(string $text, float $timeout = 0): \Generator
     {
-        yield $this->write((string) $text . PHP_EOL, $timeout);
+        return yield from $this->write($text . PHP_EOL, $timeout);
     }
 
     /**
@@ -179,10 +181,10 @@ class TextWriter implements StreamInterface
      *
      * @see http://php.net/prinf
      */
-    public function printf($format /*, ...$args */)
+    public function printf(string $format, ...$args): \Generator
     {
-        $formatted = call_user_func_array('sprintf', func_get_args());
-        yield $this->write($formatted);
+        $formatted = sprintf($format, ...$args);
+        return yield from $this->write($formatted);
     }
 
     /**
@@ -204,9 +206,9 @@ class TextWriter implements StreamInterface
      *
      * @see http://php.net/prinf
      */
-    public function printLine($format /*, ...$args */)
+    public function printLine(string $format, ...$args): \Generator
     {
-        $formatted = call_user_func_array('sprintf', func_get_args());
-        yield $this->write($formatted . PHP_EOL);
+        $formatted = sprintf($format, ...$args);
+        return yield from $this->write($formatted . PHP_EOL);
     }
 }

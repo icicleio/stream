@@ -10,7 +10,13 @@
 namespace Icicle\Stream;
 
 use Icicle\Promise\Deferred;
-use Icicle\Stream\Exception\{BusyError, ClosedException, UnreadableException, UnwritableException};
+use Icicle\Stream\Exception\{
+    BusyError,
+    ClosedException,
+    InvalidArgumentError,
+    UnreadableException,
+    UnwritableException
+};
 
 /**
  * Serves as buffer that implements the stream interface, allowing consumers to be notified when data is available in
@@ -161,7 +167,7 @@ class MemoryStream implements DuplexStreamInterface
         $this->deferred = new Deferred();
         $promise = $this->deferred->getPromise();
 
-        if (0 !== $timeout) {
+        if ($timeout) {
             $promise = $promise->timeout($timeout, 'Reading from the stream timed out.');
         }
 
@@ -256,7 +262,7 @@ class MemoryStream implements DuplexStreamInterface
             $this->queue->push($deferred);
 
             $promise = $deferred->getPromise();
-            if (0 !== $timeout) {
+            if ($timeout) {
                 $promise = $promise->timeout($timeout, 'Writing to the stream timed out.');
             }
 

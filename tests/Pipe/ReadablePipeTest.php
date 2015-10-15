@@ -50,7 +50,7 @@ class ReadablePipeTest extends StreamResourceTest
                 if ($length) {
                     fwrite($write, $data);
                 }
-                yield $length;
+                return yield $length;
             }));
 
         $writable->method('close')
@@ -157,7 +157,7 @@ class ReadablePipeTest extends StreamResourceTest
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $length = floor(strlen(self::WRITE_STRING) / 2);
+        $length = (int) floor(strlen(self::WRITE_STRING) / 2);
 
         $promise = new Coroutine($readable->read($length));
 

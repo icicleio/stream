@@ -9,16 +9,12 @@
 
 namespace Icicle\Stream\Pipe;
 
-use Exception;
 use Icicle\Loop;
-use Icicle\Promise\Deferred;
-use Icicle\Promise\Exception\TimeoutException;
-use Icicle\Stream\Exception\BusyError;
-use Icicle\Stream\Exception\ClosedException;
-use Icicle\Stream\Exception\FailureException;
-use Icicle\Stream\Exception\UnreadableException;
-use Icicle\Stream\ReadableStreamInterface;
-use Icicle\Stream\StreamResource;
+use Icicle\Loop\Events\SocketEventInterface;
+use Icicle\Promise\{Deferred, Exception\TimeoutException};
+use Icicle\Stream\Exception\{BusyError, ClosedException, FailureException, UnreadableException};
+use Icicle\Stream\{ReadableStreamInterface, StreamResource};
+use Throwable;
 
 class ReadablePipe extends StreamResource implements ReadableStreamInterface
 {
@@ -69,9 +65,9 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
     /**
      * Frees all resources used by the writable stream.
      *
-     * @param \Exception|null $exception
+     * @param \Throwable|null $exception
      */
-    private function free(Exception $exception = null)
+    private function free(Throwable $exception = null)
     {
         if (null !== $this->poll) {
             $this->poll->free();
@@ -89,7 +85,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function read($length = 0, $byte = null, $timeout = 0)
+    public function read(int $length = 0, string $byte = null, float $timeout = 0): \Generator
     {
         if (null !== $this->deferred) {
             throw new BusyError('Already waiting on stream.');
@@ -99,26 +95,23 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
             throw new UnreadableException('The stream is no longer readable.');
         }
 
-        $this->length = (int) $length;
+        $this->length = $length;
         if (0 >= $this->length) {
             $this->length = self::CHUNK_SIZE;
         }
 
-        $this->byte = (string) $byte;
-        $this->byte = strlen($this->byte) ? $this->byte[0] : null;
+        $this->byte = strlen($byte) ? $byte[0] : null;
 
         $resource = $this->getResource();
         $data = $this->fetch($resource);
 
         if ('' !== $data) {
-            yield $data;
-            return;
+            return $data;
         }
 
         if ($this->eof($resource)) { // Close only if no data was read and at EOF.
             $this->close();
-            yield $data; // Resolve with empty string on EOF.
-            return;
+            return $data; // Resolve with empty string on EOF.
         }
 
         if (null === $this->poll) {
@@ -132,7 +125,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
         });
 
         try {
-            yield $this->deferred->getPromise();
+            return yield $this->deferred->getPromise();
         } finally {
             $this->deferred = null;
         }
@@ -158,7 +151,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream has been closed.
      */
-    public function poll($timeout = 0)
+    public function poll(float $timeout = 0): \Generator
     {
         if (null !== $this->deferred) {
             throw new BusyError('Already waiting on stream.');
@@ -185,7 +178,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
         });
 
         try {
-            yield $this->deferred->getPromise();
+            return yield $this->deferred->getPromise();
         } finally {
             $this->deferred = null;
         }
@@ -194,7 +187,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function isReadable()
+    public function isReadable(): bool
     {
         return $this->isOpen();
     }
@@ -206,7 +199,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      *
      * @return string
      */
-    private function fetch($resource)
+    private function fetch($resource): string
     {
         if ('' === $this->buffer) {
             $data = (string) fread($resource, $this->length);
@@ -234,7 +227,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      *
      * @return bool
      */
-    private function eof($resource)
+    private function eof($resource): bool
     {
         return feof($resource) && '' === $this->buffer;
     }
@@ -242,7 +235,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
     /**
      * @return \Icicle\Loop\Events\SocketEventInterface
      */
-    private function createPoll()
+    private function createPoll(): SocketEventInterface
     {
         return Loop\poll($this->getResource(), function ($resource, $expired) {
             if ($expired) {

@@ -9,15 +9,12 @@
 
 namespace Icicle\Stream\Pipe;
 
-use Exception;
 use Icicle\Loop;
-use Icicle\Promise\Deferred;
-use Icicle\Promise\Exception\TimeoutException;
-use Icicle\Stream\Exception\ClosedException;
-use Icicle\Stream\Exception\FailureException;
-use Icicle\Stream\Exception\UnwritableException;
-use Icicle\Stream\StreamResource;
-use Icicle\Stream\WritableStreamInterface;
+use Icicle\Loop\Events\SocketEventInterface;
+use Icicle\Promise\{Deferred, Exception\TimeoutException};
+use Icicle\Stream\Exception\{ClosedException, FailureException, UnwritableException};
+use Icicle\Stream\{StreamResource, WritableStreamInterface};
+use Throwable;
 
 class WritablePipe extends StreamResource implements WritableStreamInterface
 {
@@ -63,9 +60,9 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
     /**
      * Frees all resources used by the writable stream.
      *
-     * @param \Exception|null $exception
+     * @param \Throwable|null $exception
      */
-    private function free(Exception $exception = null)
+    private function free(Throwable $exception = null)
     {
         $this->writable = false;
 
@@ -87,7 +84,7 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function write($data, $timeout = 0)
+    public function write(string $data, float $timeout = 0): \Generator
     {
         return $this->send($data, $timeout, false);
     }
@@ -104,13 +101,12 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream has been closed.
      */
-    private function send($data, $timeout = 0, $end = false)
+    private function send(string $data, float $timeout = 0, bool $end = false): \Generator
     {
         if (!$this->isWritable()) {
             throw new UnwritableException('The stream is no longer writable.');
         }
 
-        $data = (string) $data;
         $length = strlen($data);
         $written = 0;
 
@@ -121,15 +117,13 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
         try {
             if ($this->writeQueue->isEmpty()) {
                 if (0 === $length) {
-                    yield $written;
-                    return;
+                    return $written;
                 }
 
                 $written = $this->push($this->getResource(), $data, false);
 
                 if ($length <= $written) {
-                    yield $written;
-                    return;
+                    return $written;
                 }
 
                 $data = substr($data, $written);
@@ -146,8 +140,8 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
                 $this->await->listen($timeout);
             }
 
-            yield $deferred->getPromise();
-        } catch (Exception $exception) {
+            return yield $deferred->getPromise();
+        } catch (Throwable $exception) {
             if ($this->isOpen()) {
                 $this->free($exception);
             }
@@ -162,7 +156,7 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function end($data = '', $timeout = 0)
+    public function end(string $data = '', float $timeout = 0): \Generator
     {
         return $this->send($data, $timeout, true);
     }
@@ -180,7 +174,7 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream has been closed.
      */
-    public function await($timeout = 0)
+    public function await(float $timeout = 0): \Generator
     {
         if (!$this->isWritable()) {
             throw new UnwritableException('The stream is no longer writable.');
@@ -198,8 +192,8 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
         }
 
         try {
-            yield $deferred->getPromise();
-        } catch (Exception $exception) {
+            return yield $deferred->getPromise();
+        } catch (Throwable $exception) {
             if ($this->isOpen()) {
                 $this->free($exception);
             }
@@ -210,7 +204,7 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
     /**
      * {@inheritdoc}
      */
-    public function isWritable()
+    public function isWritable(): bool
     {
         return $this->writable;
     }
@@ -224,7 +218,7 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
      *
      * @throws FailureException If writing fails.
      */
-    private function push($resource, $data, $strict = false)
+    private function push($resource, string $data, bool $strict = false): int
     {
         // Error reporting suppressed since fwrite() emits E_WARNING if the pipe is broken or the buffer is full.
         $written = @fwrite($resource, $data, self::CHUNK_SIZE);
@@ -243,7 +237,7 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
     /**
      * @return \Icicle\Loop\Events\SocketEventInterface
      */
-    private function createAwait()
+    private function createAwait(): SocketEventInterface
     {
         return Loop\await($this->getResource(), function ($resource, $expired) {
             if ($expired) {
@@ -261,7 +255,7 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
             } else {
                 try {
                     $written = $this->push($resource, $data, true);
-                } catch (Exception $exception) {
+                } catch (Throwable $exception) {
                     $deferred->reject($exception);
                     return;
                 }

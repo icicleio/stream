@@ -9,12 +9,8 @@
 
 namespace Icicle\Stream;
 
-use Icicle\Stream\Exception\Error;
-use Icicle\Stream\Exception\FailureException;
-use Icicle\Stream\Exception\InvalidArgumentError;
-use Icicle\Stream\Exception\UnwritableException;
-use Icicle\Stream\Pipe\ReadablePipe;
-use Icicle\Stream\Pipe\WritablePipe;
+use Icicle\Stream\Exception\{Error, FailureException, InvalidArgumentError, UnwritableException};
+use Icicle\Stream\Pipe\{ReadablePipe, WritablePipe};
 
 // @codeCoverageIgnoreStart
 if (strlen('…') === 1) {
@@ -46,11 +42,11 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
     function pipe(
         ReadableStreamInterface $source,
         WritableStreamInterface $destination,
-        $end = true,
-        $length = 0,
+        bool $end = true,
+        int $length = 0,
         $byte = null,
-        $timeout = 0
-    ) {
+        float $timeout = 0
+    ): \Generator {
         if (!$destination->isWritable()) {
             throw new UnwritableException('The stream is not writable.');
         }
@@ -60,19 +56,18 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
             throw new InvalidArgumentError('The length should be a non-negative integer.');
         }
 
-        $byte = (string) $byte;
         $byte = strlen($byte) ? $byte[0] : null;
 
         $bytes = 0;
 
         try {
             do {
-                $data = (yield $source->read($length, $byte, $timeout));
+                $data = yield from $source->read($length, $byte, $timeout);
 
                 $count = strlen($data);
                 $bytes += $count;
 
-                yield $destination->write($data, $timeout);
+                yield from $destination->write($data, $timeout);
             } while ($source->isReadable()
                 && $destination->isWritable()
                 && (null === $byte || $data[$count - 1] !== $byte)
@@ -80,16 +75,16 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
             );
         } catch (\Exception $exception) {
             if ($end && $destination->isWritable()) {
-                yield $destination->end();
+                yield from $destination->end();
             }
             throw $exception;
         }
 
         if ($end && $destination->isWritable()) {
-            yield $destination->end();
+            yield from $destination->end();
         }
 
-        yield $bytes;
+        return $bytes;
     }
 
     /**
@@ -109,7 +104,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    function readTo(ReadableStreamInterface $stream, $length, $timeout = 0)
+    function readTo(ReadableStreamInterface $stream, int $length, float $timeout = 0): \Generator
     {
         $length = (int) $length;
         if (0 > $length) {
@@ -117,18 +112,17 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
         }
 
         if (0 === $length) {
-            yield '';
-            return;
+            return '';
         }
 
         $buffer = '';
         $remaining = $length;
 
         do {
-            $buffer .= (yield $stream->read($remaining, null, $timeout));
+            $buffer .= yield from $stream->read($remaining, null, $timeout);
         } while (0 === $length || 0 < ($remaining = $length - strlen($buffer)));
 
-        yield $buffer;
+        return $buffer;
     }
 
     /**
@@ -149,8 +143,12 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    function readUntil(ReadableStreamInterface $stream, $needle, $maxlength = 0, $timeout = 0)
-    {
+    function readUntil(
+        ReadableStreamInterface $stream,
+        string $needle,
+        int $maxlength = 0,
+        float $timeout = 0
+    ): \Generator {
         $maxlength = (int) $maxlength;
         if (0 > $maxlength) {
             throw new InvalidArgumentError('The length should be a non-negative integer.');
@@ -168,12 +166,12 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
         $remaining = $maxlength;
 
         do {
-            $buffer .= (yield $stream->read($remaining, $byte, $timeout));
+            $buffer .= yield from $stream->read($remaining, $byte, $timeout);
         } while ((0 === $maxlength || 0 < ($remaining = $maxlength - strlen($buffer)))
             && substr($buffer, -$nlength) !== $needle
         );
 
-        yield $buffer;
+        return $buffer;
     }
 
     /**
@@ -192,7 +190,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    function readAll(ReadableStreamInterface $stream, $maxlength = 0, $timeout = 0)
+    function readAll(ReadableStreamInterface $stream, int $maxlength = 0, float $timeout = 0): \Generator
     {
         $buffer = '';
 
@@ -204,10 +202,10 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
         $remaining = $maxlength;
 
         while ($stream->isReadable() && (0 === $maxlength || 0 < ($remaining = $maxlength - strlen($buffer)))) {
-            $buffer .= (yield $stream->read($remaining, null, $timeout));
+            $buffer .= yield from $stream->read($remaining, null, $timeout);
         }
 
-        yield $buffer;
+        return $buffer;
     }
 
     /**
@@ -217,7 +215,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @throws \Icicle\Stream\Exception\FailureException If creating the sockets fails.
      */
-    function pair()
+    function pair(): array
     {
         if (false === ($sockets = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP))) {
             $message = 'Failed to create socket pair.';
@@ -235,7 +233,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @return \Icicle\Stream\ReadableStreamInterface
      */
-    function stdin()
+    function stdin(): ReadableStreamInterface
     {
         static $pipe;
 
@@ -251,7 +249,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @return \Icicle\Stream\WritableStreamInterface
      */
-    function stdout()
+    function stdout(): WritableStreamInterface
     {
         static $pipe;
 
@@ -267,7 +265,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @return \Icicle\Stream\WritableStreamInterface
      */
-    function stderr()
+    function stderr(): WritableStreamInterface
     {
         static $pipe;
 
