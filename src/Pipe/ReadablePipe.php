@@ -99,14 +99,12 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
             $data = $this->fetch($resource, $length, $byte);
 
             if ('' !== $data) {
-                yield $data;
-                return;
+                return $data;
             }
 
             if ($this->eof($resource)) { // Close only if no data was read and at EOF.
                 $this->close();
-                yield $data; // Resolve with empty string on EOF.
-                return;
+                return $data; // Resolve with empty string on EOF.
             }
 
             if (null === $this->poll) {
@@ -195,7 +193,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      *
      * @return string
      */
-    private function fetch($resource, $length = self::CHUNK_SIZE, $byte = null)
+    private function fetch($resource, int $length = self::CHUNK_SIZE, string $byte = null): string
     {
         if ('' === $this->buffer) {
             $data = (string) fread($resource, $length);
