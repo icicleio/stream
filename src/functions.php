@@ -51,7 +51,6 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
             throw new UnwritableException('The stream is not writable.');
         }
 
-        $length = (int) $length;
         if (0 > $length) {
             throw new InvalidArgumentError('The length should be a non-negative integer.');
         }
@@ -106,7 +105,6 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      */
     function readTo(ReadableStreamInterface $stream, int $length, float $timeout = 0): \Generator
     {
-        $length = (int) $length;
         if (0 > $length) {
             throw new InvalidArgumentError('The length should be a non-negative integer.');
         }
@@ -149,12 +147,10 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
         int $maxlength = 0,
         float $timeout = 0
     ): \Generator {
-        $maxlength = (int) $maxlength;
         if (0 > $maxlength) {
             throw new InvalidArgumentError('The length should be a non-negative integer.');
         }
 
-        $needle = (string) $needle;
         $nlength = strlen($needle);
 
         if (0 === $nlength) {
@@ -194,7 +190,6 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
     {
         $buffer = '';
 
-        $maxlength = (int) $maxlength;
         if (0 > $maxlength) {
             throw new InvalidArgumentError('The max length should be a non-negative integer.');
         }
