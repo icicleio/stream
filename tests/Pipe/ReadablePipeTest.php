@@ -16,6 +16,7 @@ use Icicle\Promise\Exception\TimeoutException;
 use Icicle\Stream\Exception\BusyError;
 use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\FailureException;
+use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\UnreadableException;
 use Icicle\Stream\Pipe\ReadablePipe;
 use Icicle\Stream\Pipe\WritablePipe;
@@ -193,9 +194,9 @@ class ReadablePipeTest extends StreamResourceTest
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
-            ->with($this->identicalTo(self::WRITE_STRING));
+            ->with($this->isInstanceOf(InvalidArgumentError::class));
 
-        $promise->done($callback);
+        $promise->done($this->createCallback(0), $callback);
 
         Loop\run();
     }
@@ -509,9 +510,9 @@ class ReadablePipeTest extends StreamResourceTest
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
-            ->with($this->identicalTo(substr(self::WRITE_STRING, 0, $offset + 1)));
+            ->with($this->isInstanceOf(InvalidArgumentError::class));
 
-        $promise->done($callback);
+        $promise->done($this->createCallback(0), $callback);
 
         Loop\run();
     }

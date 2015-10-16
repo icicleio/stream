@@ -12,7 +12,7 @@ namespace Icicle\Stream\Pipe;
 use Icicle\Loop;
 use Icicle\Loop\Events\SocketEventInterface;
 use Icicle\Promise\{Deferred, Exception\TimeoutException};
-use Icicle\Stream\Exception\{BusyError, ClosedException, FailureException, UnreadableException};
+use Icicle\Stream\Exception\{BusyError, ClosedException, InvalidArgumentError, FailureException, UnreadableException};
 use Icicle\Stream\{ReadableStreamInterface, StreamResource};
 use Throwable;
 
@@ -27,16 +27,6 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      * @var \Icicle\Loop\Events\SocketEventInterface
      */
     private $poll;
-
-    /**
-     * @var int
-     */
-    private $length = 0;
-
-    /**
-     * @var string|null
-     */
-    private $byte;
 
     /**
      * @var string
@@ -95,40 +85,46 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
             throw new UnreadableException('The stream is no longer readable.');
         }
 
-        $this->length = $length;
-        if (0 >= $this->length) {
-            $this->length = self::CHUNK_SIZE;
+        if (0 > $length) {
+            throw new InvalidArgumentError('The length must be a non-negative integer.');
+        } elseif (0 === $length) {
+            $length = self::CHUNK_SIZE;
         }
 
-        $this->byte = strlen($byte) ? $byte[0] : null;
+        $byte = strlen($byte) ? $byte[0] : null;
 
         $resource = $this->getResource();
-        $data = $this->fetch($resource);
 
-        if ('' !== $data) {
-            return $data;
-        }
+        do {
+            $data = $this->fetch($resource, $length, $byte);
 
-        if ($this->eof($resource)) { // Close only if no data was read and at EOF.
-            $this->close();
-            return $data; // Resolve with empty string on EOF.
-        }
+            if ('' !== $data) {
+                yield $data;
+                return;
+            }
 
-        if (null === $this->poll) {
-            $this->poll = $this->createPoll();
-        }
+            if ($this->eof($resource)) { // Close only if no data was read and at EOF.
+                $this->close();
+                yield $data; // Resolve with empty string on EOF.
+                return;
+            }
 
-        $this->poll->listen($timeout);
+            if (null === $this->poll) {
+                $this->poll = $this->createPoll();
+            }
 
-        $this->deferred = new Deferred(function () {
-            $this->poll->cancel();
-        });
+            $this->poll->listen($timeout);
 
-        try {
-            return yield $this->deferred->getPromise();
-        } finally {
-            $this->deferred = null;
-        }
+            $this->deferred = new Deferred(function () {
+                $this->poll->cancel();
+            });
+
+            try {
+                yield $this->deferred->getPromise();
+            } finally {
+                $this->deferred = null;
+            }
+        } while (true);
     }
 
     /**
@@ -165,8 +161,6 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
             throw new FailureException('Stream buffer is not empty. Perform another read before polling.');
         }
 
-        $this->length = 0;
-
         if (null === $this->poll) {
             $this->poll = $this->createPoll();
         }
@@ -196,25 +190,27 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      * Reads data from the stream socket resource based on set length and read-to byte.
      *
      * @param resource $resource
+     * @param int $length
+     * @param string|null $byte
      *
      * @return string
      */
-    private function fetch($resource): string
+    private function fetch($resource, $length = self::CHUNK_SIZE, $byte = null)
     {
         if ('' === $this->buffer) {
-            $data = (string) fread($resource, $this->length);
+            $data = (string) fread($resource, $length);
 
-            if (null === $this->byte || '' === $data) {
+            if (null === $byte || '' === $data) {
                 return $data;
             }
 
             $this->buffer = $data;
         }
 
-        if (null !== $this->byte && false !== ($position = strpos($this->buffer, $this->byte))) {
+        if (null !== $byte && false !== ($position = strpos($this->buffer, $byte))) {
             ++$position; // Include byte in result.
         } else {
-            $position = $this->length;
+            $position = $length;
         }
 
         $data = (string) substr($this->buffer, 0, $position);
@@ -243,18 +239,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
                 return;
             }
 
-            if (0 === $this->length) {
-                $this->deferred->resolve('');
-                return;
-            }
-
-            $data = $this->fetch($resource);
-
-            $this->deferred->resolve($data);
-
-            if ('' === $data && $this->eof($resource)) { // Close only if no data was read and at EOF.
-                $this->close();
-            }
+            $this->deferred->resolve($this->buffer);
         });
     }
 }
