@@ -26,14 +26,14 @@
     "autoload": {
         "psr-4": {
             "Icicle\\Stream\\": "src"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Icicle\\Tests\\Stream\\": "tests"
         },
         "files": [
             "src/functions.php"
         ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Icicle\\Tests\\Stream\\": "tests"
+        }
     }
 }
