@@ -17,8 +17,8 @@ use Icicle\Stream\Pipe\ReadablePipe;
 use Icicle\Stream\Pipe\WritablePipe;
 
 // @codeCoverageIgnoreStart
-if (strlen('…') === 1) {
-    throw new Error('The mbstring.overload ini setting is enabled. It must be disable to use the stream package.');
+if (strlen('…') !== 3) {
+    throw new Error('The mbstring.func_overload ini setting is enabled. It must be disable to use the stream package.');
 } // @codeCoverageIgnoreEnd
 
 if (!function_exists(__NAMESPACE__ . '\pipe')) {
