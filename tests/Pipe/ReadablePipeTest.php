@@ -20,9 +20,8 @@ use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\UnreadableException;
 use Icicle\Stream\Pipe\ReadablePipe;
 use Icicle\Stream\Pipe\WritablePipe;
-use Icicle\Tests\Stream\StreamResourceTest;
 
-class ReadablePipeTest extends StreamResourceTest
+class ReadablePipeTest extends PipeTest
 {
     /**
      * @return \Icicle\Stream\ReadableStreamInterface[]|\Icicle\Stream\WritableStreamInterface[]
@@ -822,6 +821,36 @@ class ReadablePipeTest extends StreamResourceTest
         $promise->done($this->createCallback(0), $callback);
 
         Loop\run(); // Should reject with UnreadableException.
+    }
+
+    /**
+     * @depends testReadTo
+     */
+    public function testReadToThenReadWithLength()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        new Coroutine($writable->write(self::WRITE_STRING));
+
+        $promise = new Coroutine($readable->read(0, substr(self::WRITE_STRING, 6, 1)));
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->identicalTo(substr(self::WRITE_STRING, 0, 7)));
+
+        $promise->done($callback);
+
+        Loop\run();
+
+        $promise = new Coroutine($readable->read(10));
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->identicalTo(substr(self::WRITE_STRING, 7, 10)));
+
+        $promise->done($callback);
+
+        Loop\run();
     }
 
     /**

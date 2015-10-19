@@ -95,13 +95,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
 
         $resource = $this->getResource();
 
-        do {
-            $data = $this->fetch($resource, $length, $byte);
-
-            if ('' !== $data) {
-                return $data;
-            }
-
+        while ('' === ($data = $this->fetch($resource, $length, $byte))) {
             if ($this->eof($resource)) { // Close only if no data was read and at EOF.
                 $this->close();
                 return $data; // Resolve with empty string on EOF.
@@ -122,7 +116,9 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
             } finally {
                 $this->deferred = null;
             }
-        } while (true);
+        }
+
+        return $data;
     }
 
     /**
@@ -195,20 +191,22 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      */
     private function fetch($resource, int $length = self::CHUNK_SIZE, string $byte = null): string
     {
-        if ('' === $this->buffer) {
-            $data = (string) fread($resource, $length);
+        $remaining = $length;
 
-            if (null === $byte || '' === $data) {
+        if (('' === $this->buffer || 0 < ($remaining -= strlen($this->buffer))) && !feof($resource)) {
+            $this->buffer .= fread($resource, $remaining);
+        }
+
+        if (null === $byte || false === ($position = strpos($this->buffer, $byte))) {
+            if (strlen($this->buffer) <= $length) {
+                $data = $this->buffer;
+                $this->buffer = '';
                 return $data;
             }
 
-            $this->buffer = $data;
-        }
-
-        if (null !== $byte && false !== ($position = strpos($this->buffer, $byte))) {
-            ++$position; // Include byte in result.
-        } else {
             $position = $length;
+        } else {
+            ++$position; // Include byte in result.
         }
 
         $data = (string) substr($this->buffer, 0, $position);
