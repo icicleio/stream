@@ -7,12 +7,13 @@
  * @license MIT See the LICENSE file that was distributed with this source code for more information.
  */
 
-namespace Icicle\Tests\Stream;
+namespace Icicle\Tests\Stream\Pipe;
 
 use Icicle\Loop;
 use Icicle\Loop\SelectLoop;
+use Icicle\Tests\Stream\TestCase;
 
-abstract class StreamResourceTest extends TestCase
+abstract class PipeTest extends TestCase
 {
     const CHUNK_SIZE = 8192;
     const TIMEOUT = 0.1;

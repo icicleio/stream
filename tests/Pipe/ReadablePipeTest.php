@@ -20,9 +20,8 @@ use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\UnreadableException;
 use Icicle\Stream\Pipe\ReadablePipe;
 use Icicle\Stream\Pipe\WritablePipe;
-use Icicle\Tests\Stream\StreamResourceTest;
 
-class ReadablePipeTest extends StreamResourceTest
+class ReadablePipeTest extends PipeTest
 {
     /**
      * @return \Icicle\Stream\ReadableStreamInterface[]|\Icicle\Stream\WritableStreamInterface[]

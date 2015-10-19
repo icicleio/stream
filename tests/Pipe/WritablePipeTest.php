@@ -17,9 +17,8 @@ use Icicle\Stream\Exception\FailureException;
 use Icicle\Stream\Exception\UnwritableException;
 use Icicle\Stream\Pipe\ReadablePipe;
 use Icicle\Stream\Pipe\WritablePipe;
-use Icicle\Tests\Stream\StreamResourceTest;
 
-class WritablePipeTest extends StreamResourceTest
+class WritablePipeTest extends PipeTest
 {
     /**
      * @return \Icicle\Stream\ReadableStreamInterface[]|\Icicle\Stream\WritableStreamInterface[]
