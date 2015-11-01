@@ -1,9 +1,18 @@
 # Changelog
 
+### v0.4.2
+
+- Changes
+    - Setting the third parameter of Stream\pipe() to true will now also close the source stream when piping completes.
+
+---
+
 ### v0.4.1
 
 - Bug Fixes
     - Fixed issue in `Icicle\Stream\Pipe\ReadablePipe` where reading might fail if the other end of the pipe is closed.
+
+---
 
 ### v0.4.0
 

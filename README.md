@@ -366,7 +366,7 @@ Creates a duplex stream from the given stream resource (note only stream resourc
 ```php
 Icicle\Stream\pipe(
     ReadableStreamInterface $source
-    WritableStreamInterface $dest,
+    WritableStreamInterface $destination,
     bool $end = true,
     int $length = 0,
     string|null $byte = null
@@ -374,7 +374,7 @@ Icicle\Stream\pipe(
 ): Generator
 ```
 
-Returns a generator that should be used within a coroutine or used to create a new coroutine. Pipes all data read from this stream to the writable stream. If `$length` is not `0`, only `$length` bytes will be piped to the writable stream.  If `$byte` is not `null`, piping will end once `$byte` is encountered in the stream. The returned promise is fulfilled with the number of bytes piped once the writable stream is no longer writable, `$length` bytes have been piped, or `$byte` is encountered in the stream.
+Returns a generator that should be used within a coroutine or used to create a new coroutine. Pipes all data read from this stream to the writable stream. If `$length` is not `0`, only `$length` bytes will be piped to the writable stream.  If `$byte` is not `null`, piping will end once `$byte` is encountered in the stream. The returned promise is fulfilled with the number of bytes piped once the writable stream is no longer writable, `$length` bytes have been piped, or `$byte` is encountered in the stream. If `$end` is true, the source stream will be closed and the destination stream will be ended when piping completes.
 
 Resolution | Type | Description
 :-: | :-- | :--

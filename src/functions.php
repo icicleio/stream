@@ -23,10 +23,13 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @param \Icicle\Stream\ReadableStreamInterface $source
      * @param \Icicle\Stream\WritableStreamInterface $destination
-     * @param bool $end
-     * @param int $length
-     * @param string|null $byte
-     * @param float|int $timeout
+     * @param bool $end If true, calls close() on the source stream and calls end() on the destination stream when
+     *     piping ends, either due to completion or on error.
+     * @param int $length The number of bytes to pipe. Use 0 for any number of bytes.
+     * @param string|null $byte Stop piping when the given byte is read from the source stream. Use null to ignore
+     *     this parameter.
+     * @param float|int $timeout Number of seconds to wait while reading from the source or writing to the destination
+     *     before failing. Use 0 for no timeout.
      *
      * @return \Generator
      *
@@ -73,14 +76,24 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
                 && (0 === $length || 0 < $length -= $count)
             );
         } catch (\Exception $exception) {
-            if ($end && $destination->isWritable()) {
-                yield from $destination->end();
+            if ($end) {
+                $source->close();
+                if ($destination->isWritable()) {
+                    yield $destination->end();
+                } else {
+                    $destination->close();
+                }
             }
             throw $exception;
         }
 
-        if ($end && $destination->isWritable()) {
-            yield from $destination->end();
+        if ($end) {
+            $source->close();
+            if ($destination->isWritable()) {
+                yield $destination->end();
+            } else {
+                $destination->close();
+            }
         }
 
         return $bytes;
