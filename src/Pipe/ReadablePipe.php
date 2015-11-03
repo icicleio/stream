@@ -206,7 +206,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
     {
         $remaining = $length;
 
-        if (('' === $this->buffer || 0 < ($remaining -= strlen($this->buffer))) && !feof($resource)) {
+        if (('' === $this->buffer || 0 < ($remaining -= strlen($this->buffer))) && is_resource($resource)) {
             $this->buffer .= fread($resource, $remaining);
         }
 
@@ -234,7 +234,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      */
     private function eof($resource)
     {
-        return feof($resource) && '' === $this->buffer;
+        return (!is_resource($resource) || feof($resource)) && '' === $this->buffer;
     }
 
     /**
