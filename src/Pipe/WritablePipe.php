@@ -209,16 +209,19 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param float|int $timeout Timeout for await if a write was pending.
      */
-    public function rebind()
+    public function rebind($timeout = 0)
     {
-        if (!$this->writeQueue->isEmpty()) {
-            throw new BusyError('Cannot rebind while the stream is busy.');
-        }
-
+        $pending = $this->await->isPending();
         $this->await->free();
 
         $this->await = $this->createAwait();
+
+        if ($pending) {
+            $this->await->listen($timeout);
+        }
     }
 
     /**

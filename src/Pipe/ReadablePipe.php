@@ -181,16 +181,19 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param float|int $timeout Timeout for poll if a read was pending.
      */
-    public function rebind()
+    public function rebind($timeout = 0)
     {
-        if (null !== $this->deferred) {
-            throw new BusyError('Cannot rebind while the stream is busy.');
-        }
-
+        $pending = $this->poll->isPending();
         $this->poll->free();
 
         $this->poll = $this->createPoll();
+
+        if ($pending) {
+            $this->poll->listen($timeout);
+        }
     }
 
     /**

@@ -152,10 +152,12 @@ class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param float|int $timeout Timeout for poll and await if a read or write was pending.
      */
-    public function rebind()
+    public function rebind($timeout = 0)
     {
-        $this->readable->rebind();
-        $this->writable->rebind();
+        $this->readable->rebind($timeout);
+        $this->writable->rebind($timeout);
     }
 }
