@@ -1,5 +1,15 @@
 # Changelog
 
+### v0.4.3
+
+- New Features
+    - Added a `rebind()` method to the pipe classes that rebinds the object to the current event loop instance. This method should be used if the event loop is switched out during runtime (for example, when forking using the concurrent package).
+
+- Bug Fixes
+    - Fixed issue in `Icicle\Stream\Pipe\ReadablePipe` where certain stream resources would cause a warning to be issued if the stream was unexpectedly closed.
+
+---
+
 ### v0.4.2
 
 - Changes
