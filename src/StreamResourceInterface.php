@@ -19,4 +19,9 @@ interface StreamResourceInterface extends StreamInterface
      * @return resource|null
      */
     public function getResource();
+
+    /**
+     * Rebinds the object to the current global event loop instance.
+     */
+    public function rebind();
 }

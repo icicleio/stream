@@ -13,6 +13,7 @@ use Exception;
 use Icicle\Loop;
 use Icicle\Promise\Deferred;
 use Icicle\Promise\Exception\TimeoutException;
+use Icicle\Stream\Exception\BusyError;
 use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\FailureException;
 use Icicle\Stream\Exception\UnwritableException;
@@ -50,6 +51,7 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
         stream_set_chunk_size($resource, self::CHUNK_SIZE);
 
         $this->writeQueue = new \SplQueue();
+        $this->await = $this->createAwait();
     }
 
     /**
@@ -69,9 +71,7 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
     {
         $this->writable = false;
 
-        if (null !== $this->await) {
-            $this->await->free();
-        }
+        $this->await->free();
 
         while (!$this->writeQueue->isEmpty()) {
             /** @var \Icicle\Promise\Deferred $deferred */
@@ -138,10 +138,6 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
             $deferred = new Deferred();
             $this->writeQueue->push([$data, $written, $timeout, $deferred]);
 
-            if (null === $this->await) {
-                $this->await = $this->createAwait();
-            }
-
             if (!$this->await->isPending()) {
                 $this->await->listen($timeout);
             }
@@ -189,10 +185,6 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
         $deferred = new Deferred();
         $this->writeQueue->push(['', 0, $timeout, $deferred]);
 
-        if (null === $this->await) {
-            $this->await = $this->createAwait();
-        }
-
         if (!$this->await->isPending()) {
             $this->await->listen($timeout);
         }
@@ -213,6 +205,20 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
     public function isWritable()
     {
         return $this->writable;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function rebind()
+    {
+        if (!$this->writeQueue->isEmpty()) {
+            throw new BusyError('Cannot rebind while the stream is busy.');
+        }
+
+        $this->await->free();
+
+        $this->await = $this->createAwait();
     }
 
     /**

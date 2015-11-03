@@ -149,4 +149,13 @@ class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
     {
         return $this->writable->isWritable();
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function rebind()
+    {
+        $this->readable->rebind();
+        $this->writable->rebind();
+    }
 }
