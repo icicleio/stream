@@ -11,6 +11,8 @@ namespace Icicle\Tests\Stream\Pipe;
 
 use Icicle\Coroutine\Coroutine;
 use Icicle\Loop;
+use Icicle\Loop\Events\SocketEventInterface;
+use Icicle\Loop\LoopInterface;
 use Icicle\Promise\Exception\TimeoutException;
 use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\FailureException;
@@ -413,5 +415,48 @@ class WritablePipeTest extends PipeTest
         $writable->close();
 
         Loop\run();
+    }
+
+    public function testRebind()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        $loop = $this->getMock(LoopInterface::class);
+
+        $loop->expects($this->once())
+            ->method('await');
+
+        Loop\loop($loop);
+
+        $writable->rebind();
+    }
+
+    /**
+     * @depends testRebind
+     */
+    public function testRebindAfterPendingWrite()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        do { // Write until a pending promise is returned.
+            $promise = new Coroutine($writable->write(self::WRITE_STRING));
+            Loop\tick(false);
+        } while (!$promise->isPending());
+
+        $timeout = 1;
+
+        $await = $this->getMock(SocketEventInterface::class);
+        $await->expects($this->once())
+            ->method('listen')
+            ->with($timeout);
+
+        $loop = $this->getMock(LoopInterface::class);
+        $loop->expects($this->once())
+            ->method('await')
+            ->will($this->returnValue($await));
+
+        Loop\loop($loop);
+
+        $writable->rebind($timeout);
     }
 }

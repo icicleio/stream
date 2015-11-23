@@ -12,7 +12,7 @@ namespace Icicle\Stream\Pipe;
 use Icicle\Loop;
 use Icicle\Loop\Events\SocketEventInterface;
 use Icicle\Promise\{Deferred, Exception\TimeoutException};
-use Icicle\Stream\Exception\{ClosedException, FailureException, UnwritableException};
+use Icicle\Stream\Exception\{BusyError, ClosedException, FailureException, UnwritableException};
 use Icicle\Stream\{StreamResource, WritableStreamInterface};
 use Throwable;
 
@@ -47,6 +47,7 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
         stream_set_chunk_size($resource, self::CHUNK_SIZE);
 
         $this->writeQueue = new \SplQueue();
+        $this->await = $this->createAwait();
     }
 
     /**
@@ -66,9 +67,7 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
     {
         $this->writable = false;
 
-        if (null !== $this->await) {
-            $this->await->free();
-        }
+        $this->await->free();
 
         while (!$this->writeQueue->isEmpty()) {
             /** @var \Icicle\Promise\Deferred $deferred */
@@ -132,10 +131,6 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
             $deferred = new Deferred();
             $this->writeQueue->push([$data, $written, $timeout, $deferred]);
 
-            if (null === $this->await) {
-                $this->await = $this->createAwait();
-            }
-
             if (!$this->await->isPending()) {
                 $this->await->listen($timeout);
             }
@@ -183,10 +178,6 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
         $deferred = new Deferred();
         $this->writeQueue->push(['', 0, $timeout, $deferred]);
 
-        if (null === $this->await) {
-            $this->await = $this->createAwait();
-        }
-
         if (!$this->await->isPending()) {
             $this->await->listen($timeout);
         }
@@ -207,6 +198,23 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
     public function isWritable(): bool
     {
         return $this->writable;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @param float|int $timeout Timeout for await if a write was pending.
+     */
+    public function rebind($timeout = 0)
+    {
+        $pending = $this->await->isPending();
+        $this->await->free();
+
+        $this->await = $this->createAwait();
+
+        if ($pending) {
+            $this->await->listen($timeout);
+        }
     }
 
     /**

@@ -42,6 +42,8 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
 
         stream_set_read_buffer($resource, 0);
         stream_set_chunk_size($resource, self::CHUNK_SIZE);
+
+        $this->poll = $this->createPoll();
     }
 
     /**
@@ -59,9 +61,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      */
     private function free(Throwable $exception = null)
     {
-        if (null !== $this->poll) {
-            $this->poll->free();
-        }
+        $this->poll->free();
 
         if (null !== $this->deferred) {
             $this->deferred->getPromise()->cancel(
@@ -99,10 +99,6 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
             if ($this->eof($resource)) { // Close only if no data was read and at EOF.
                 $this->close();
                 return $data; // Resolve with empty string on EOF.
-            }
-
-            if (null === $this->poll) {
-                $this->poll = $this->createPoll();
             }
 
             $this->poll->listen($timeout);
@@ -155,10 +151,6 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
             throw new FailureException('Stream buffer is not empty. Perform another read before polling.');
         }
 
-        if (null === $this->poll) {
-            $this->poll = $this->createPoll();
-        }
-
         $this->poll->listen($timeout);
 
         $this->deferred = new Deferred(function () {
@@ -181,6 +173,23 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
     }
 
     /**
+     * {@inheritdoc}
+     *
+     * @param float|int $timeout Timeout for poll if a read was pending.
+     */
+    public function rebind($timeout = 0)
+    {
+        $pending = $this->poll->isPending();
+        $this->poll->free();
+
+        $this->poll = $this->createPoll();
+
+        if ($pending) {
+            $this->poll->listen($timeout);
+        }
+    }
+
+    /**
      * Reads data from the stream socket resource based on set length and read-to byte.
      *
      * @param resource $resource
@@ -193,7 +202,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
     {
         $remaining = $length;
 
-        if (('' === $this->buffer || 0 < ($remaining -= strlen($this->buffer))) && !feof($resource)) {
+        if (('' === $this->buffer || 0 < ($remaining -= strlen($this->buffer))) && is_resource($resource)) {
             $this->buffer .= fread($resource, $remaining);
         }
 
@@ -221,7 +230,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      */
     private function eof($resource): bool
     {
-        return feof($resource) && '' === $this->buffer;
+        return (!is_resource($resource) || feof($resource)) && '' === $this->buffer;
     }
 
     /**

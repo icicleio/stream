@@ -12,6 +12,8 @@ namespace Icicle\Tests\Stream\Pipe;
 use Exception;
 use Icicle\Coroutine\Coroutine;
 use Icicle\Loop;
+use Icicle\Loop\Events\SocketEventInterface;
+use Icicle\Loop\LoopInterface;
 use Icicle\Promise\Exception\TimeoutException;
 use Icicle\Stream\Exception\BusyError;
 use Icicle\Stream\Exception\ClosedException;
@@ -967,5 +969,45 @@ class ReadablePipeTest extends PipeTest
         $promise->done($this->createCallback(0), $callback);
 
         Loop\run();
+    }
+
+    public function testRebind()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        $loop = $this->getMock(LoopInterface::class);
+
+        $loop->expects($this->once())
+            ->method('poll');
+
+        Loop\loop($loop);
+
+        $readable->rebind();
+    }
+
+    /**
+     * @depends testRebind
+     */
+    public function testRebindAfterRead()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        $promise = new Coroutine($readable->read());
+
+        $timeout = 1;
+
+        $poll = $this->getMock(SocketEventInterface::class);
+        $poll->expects($this->once())
+            ->method('listen')
+            ->with($timeout);
+
+        $loop = $this->getMock(LoopInterface::class);
+        $loop->expects($this->once())
+            ->method('poll')
+            ->will($this->returnValue($poll));
+
+        Loop\loop($loop);
+
+        $readable->rebind($timeout);
     }
 }
