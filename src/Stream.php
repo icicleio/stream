@@ -9,7 +9,7 @@
 
 namespace Icicle\Stream;
 
-interface StreamInterface
+interface Stream
 {
     /**
      * Determines if the stream is still open.

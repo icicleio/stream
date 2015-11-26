@@ -10,9 +10,9 @@
 namespace Icicle\Tests\Stream;
 
 use Icicle\Coroutine\Coroutine;
+use Icicle\Exception\InvalidArgumentError;
 use Icicle\Loop;
 use Icicle\Loop\SelectLoop;
-use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\OutOfBoundsException;
 use Icicle\Stream\Exception\UnreadableException;
 use Icicle\Stream\Exception\UnseekableException;

@@ -9,7 +9,7 @@
 
 namespace Icicle\Stream;
 
-interface ReadableStreamInterface extends StreamInterface
+interface ReadableStream extends Stream
 {
     /**
      * @coroutine
@@ -26,11 +26,10 @@ interface ReadableStreamInterface extends StreamInterface
      *
      * @resolve string Data read from the stream.
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
+     * @throws \Icicle\Exception\InvalidArgumentError If the length is invalid.
      * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
-     * @throws \Icicle\Stream\Exception\InvalidArgumentError If the length is invalid.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
-     * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function read($length = 0, $byte = null, $timeout = 0);
 

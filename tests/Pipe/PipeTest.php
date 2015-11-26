@@ -20,7 +20,7 @@ abstract class PipeTest extends TestCase
     const WRITE_STRING = 'abcdefghijklmnopqrstuvwxyz';
     
     /**
-     * @return \Icicle\Stream\StreamResourceInterface[]
+     * @return \Icicle\Stream\Resource[]
      */
     abstract public function createStreams();
 

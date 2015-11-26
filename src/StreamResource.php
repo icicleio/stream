@@ -9,12 +9,12 @@
 
 namespace Icicle\Stream;
 
-use Icicle\Stream\Exception\InvalidArgumentError;
+use Icicle\Exception\InvalidArgumentError;
 
-abstract class StreamResource implements StreamResourceInterface
+abstract class StreamResource implements Resource
 {
     /**
-     * Stream resource.
+     * Stream resource or null if the resource has been closed.
      *
      * @var resource|null
      */
@@ -23,7 +23,7 @@ abstract class StreamResource implements StreamResourceInterface
     /**
      * @param resource $resource PHP stream resource.
      *
-     * @throws \Icicle\Stream\Exception\InvalidArgumentError If a non-resource is given.
+     * @throws \Icicle\Exception\InvalidArgumentError If a non-resource is given.
      */
     public function __construct($resource)
     {

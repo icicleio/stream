@@ -10,15 +10,15 @@
 namespace Icicle\Tests\Stream\Pipe;
 
 use Exception;
+use Icicle\Awaitable\Exception\TimeoutException;
 use Icicle\Coroutine\Coroutine;
+use Icicle\Exception\InvalidArgumentError;
 use Icicle\Loop;
-use Icicle\Loop\Events\SocketEventInterface;
-use Icicle\Loop\LoopInterface;
-use Icicle\Promise\Exception\TimeoutException;
+use Icicle\Loop\Loop as LoopInterface;
+use Icicle\Loop\Watcher\Io;
 use Icicle\Stream\Exception\BusyError;
 use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\FailureException;
-use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\UnreadableException;
 use Icicle\Stream\Pipe\ReadablePipe;
 use Icicle\Stream\Pipe\WritablePipe;
@@ -26,7 +26,7 @@ use Icicle\Stream\Pipe\WritablePipe;
 class ReadablePipeTest extends PipeTest
 {
     /**
-     * @return \Icicle\Stream\ReadableStreamInterface[]|\Icicle\Stream\WritableStreamInterface[]
+     * @return \Icicle\Stream\ReadableStream[]|\Icicle\Stream\WritableStream[]
      */
     public function createStreams()
     {
@@ -113,9 +113,9 @@ class ReadablePipeTest extends PipeTest
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
-            ->with($this->isInstanceOf(ClosedException::class));
+            ->with($this->identicalTo(''));
 
-        $promise->done($this->createCallback(0), $callback);
+        $promise->done($callback);
 
         $readable->close();
 
@@ -424,9 +424,9 @@ class ReadablePipeTest extends PipeTest
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
-            ->with($this->isInstanceOf(ClosedException::class));
+            ->with($this->identicalTo(''));
 
-        $promise->done($this->createCallback(0), $callback);
+        $promise->done($callback);
 
         $readable->close();
 
@@ -916,9 +916,9 @@ class ReadablePipeTest extends PipeTest
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
-            ->with($this->isInstanceOf(ClosedException::class));
+            ->with($this->identicalTo(''));
 
-        $promise->done($this->createCallback(0), $callback);
+        $promise->done($callback);
 
         $readable->close();
 
@@ -971,6 +971,42 @@ class ReadablePipeTest extends PipeTest
         Loop\run();
     }
 
+    /**
+     * @depends testPoll
+     */
+    public function testCancelPoll()
+    {
+        $exception = new Exception();
+
+        list($readable, $writable) = $this->createStreams();
+
+        $promise = new Coroutine($readable->poll());
+
+        $promise->cancel($exception);
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->identicalTo($exception));
+
+        $promise->done($this->createCallback(0), $callback);
+
+        Loop\run();
+
+        $promise = new Coroutine($readable->poll());
+
+        $this->assertTrue($promise->isPending());
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->identicalTo(''));
+
+        $promise->done($callback);
+
+        new Coroutine($writable->write(self::WRITE_STRING));
+
+        Loop\run();
+    }
+
     public function testRebind()
     {
         list($readable, $writable) = $this->createStreams();
@@ -996,7 +1032,10 @@ class ReadablePipeTest extends PipeTest
 
         $timeout = 1;
 
-        $poll = $this->getMock(SocketEventInterface::class);
+        $poll = $this->getMockBuilder(Io::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
         $poll->expects($this->once())
             ->method('listen')
             ->with($timeout);

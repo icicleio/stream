@@ -5,10 +5,10 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 use Icicle\Coroutine\Coroutine;
 use Icicle\Loop;
-use Icicle\Stream\DuplexStreamInterface;
+use Icicle\Stream\DuplexStream;
 use Icicle\Stream\MemoryStream;
 
-$generator = function (DuplexStreamInterface $stream) {
+$generator = function (DuplexStream $stream) {
     yield $stream->write("This is just a test.\nThis will not be read.");
 
     $data = (yield $stream->read(0, "\n"));

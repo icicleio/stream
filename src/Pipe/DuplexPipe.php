@@ -9,11 +9,11 @@
 
 namespace Icicle\Stream\Pipe;
 
-use Icicle\Stream\DuplexStreamInterface;
+use Icicle\Stream\DuplexStream;
 use Icicle\Stream\Exception\UnwritableException;
-use Icicle\Stream\StreamResourceInterface;
+use Icicle\Stream\Resource;
 
-class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
+class DuplexPipe implements DuplexStream, Resource
 {
     /**
      * @var \Icicle\Stream\Pipe\ReadablePipe
@@ -77,11 +77,11 @@ class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
      * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
      *     if no data is received. Use null for no timeout.
      *
-     * @return \Icicle\Promise\PromiseInterface
+     * @return \Generator
      *
      * @resolve string Empty string.
      *
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\FailureException If the stream buffer is not empty.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
@@ -125,12 +125,14 @@ class DuplexPipe implements DuplexStreamInterface, StreamResourceInterface
     }
 
     /**
+     * @coroutine
+     *
      * Returns a coroutine that is fulfilled when the stream is ready to receive data (output buffer is not full).
      *
      * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
      *     if the data cannot be written to the stream. Use null for no timeout.
      *
-     * @return \Icicle\Promise\PromiseInterface
+     * @return \Generator
      *
      * @resolve int Always resolves with 0.
      *

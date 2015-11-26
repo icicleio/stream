@@ -9,7 +9,7 @@
 
 namespace Icicle\Stream;
 
-interface WritableStreamInterface extends StreamInterface
+interface WritableStream extends Stream
 {
     /**
      * @coroutine
@@ -25,9 +25,9 @@ interface WritableStreamInterface extends StreamInterface
      *
      * @resolve int Number of bytes written to the stream.
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function write($data, $timeout = 0);
 
@@ -44,9 +44,9 @@ interface WritableStreamInterface extends StreamInterface
      *
      * @resolve int Number of bytes written to the stream.
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function end($data = '', $timeout = 0);
     

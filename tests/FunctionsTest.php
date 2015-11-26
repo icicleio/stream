@@ -10,16 +10,16 @@
 namespace Icicle\Tests\Stream;
 
 use Exception;
+use Icicle\Awaitable\Exception\TimeoutException;
 use Icicle\Coroutine\Coroutine;
+use Icicle\Exception\InvalidArgumentError;
 use Icicle\Loop;
 use Icicle\Loop\SelectLoop;
-use Icicle\Promise\Exception\TimeoutException;
 use Icicle\Stream;
-use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\UnwritableException;
 use Icicle\Stream\MemoryStream;
-use Icicle\Stream\ReadableStreamInterface;
-use Icicle\Stream\WritableStreamInterface;
+use Icicle\Stream\ReadableStream;
+use Icicle\Stream\WritableStream;
 
 class FunctionsTest extends TestCase
 {
@@ -48,7 +48,7 @@ class FunctionsTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnCallback(function () {
@@ -94,7 +94,7 @@ class FunctionsTest extends TestCase
     {
         list($readable) = $this->createStreams();
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(false));
@@ -119,7 +119,7 @@ class FunctionsTest extends TestCase
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $stream = $this->prophesize(WritableStreamInterface::class);
+        $stream = $this->prophesize(WritableStream::class);
 
         $stream->isWritable()->willReturn(true);
 
@@ -132,7 +132,7 @@ class FunctionsTest extends TestCase
 
         $promise = new Coroutine(Stream\pipe($readable, $stream->reveal(), true));
 
-        $promise->done($this->createCallback(0), $this->createCallback(1));
+        $promise->done($this->createCallback(1));
 
         Loop\tick();
 
@@ -152,7 +152,7 @@ class FunctionsTest extends TestCase
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -190,7 +190,7 @@ class FunctionsTest extends TestCase
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -210,7 +210,7 @@ class FunctionsTest extends TestCase
 
         $promise = new Coroutine(Stream\pipe($readable, $mock, false));
 
-        $promise->done($this->createCallback(0), $this->createCallback(1));
+        $promise->done($this->createCallback(1));
 
         Loop\tick();
 
@@ -230,7 +230,7 @@ class FunctionsTest extends TestCase
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -268,7 +268,7 @@ class FunctionsTest extends TestCase
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $stream = $this->prophesize(WritableStreamInterface::class);
+        $stream = $this->prophesize(WritableStream::class);
 
         $stream->isWritable()->willReturn(true);
 
@@ -309,7 +309,7 @@ class FunctionsTest extends TestCase
 
         $length = 8;
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -337,7 +337,7 @@ class FunctionsTest extends TestCase
 
         Loop\tick();
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -382,7 +382,7 @@ class FunctionsTest extends TestCase
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnCallback(function () {
@@ -419,7 +419,7 @@ class FunctionsTest extends TestCase
         $offset = 10;
         $char = substr(self::WRITE_STRING, $offset, 1);
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -452,7 +452,7 @@ class FunctionsTest extends TestCase
     {
         list($readable, $writable) = $this->createStreams();
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(false));
@@ -481,7 +481,7 @@ class FunctionsTest extends TestCase
         $length = 3;
         $string = substr(self::WRITE_STRING, $offset, $length);
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -516,7 +516,7 @@ class FunctionsTest extends TestCase
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $stream = $this->prophesize(WritableStreamInterface::class);
+        $stream = $this->prophesize(WritableStream::class);
 
         $stream->isWritable()->willReturn(true);
 
@@ -529,7 +529,7 @@ class FunctionsTest extends TestCase
 
         $promise = new Coroutine(Stream\pipe($readable, $stream->reveal(), true, 0, '!'));
 
-        $promise->done($this->createCallback(0), $this->createCallback(1));
+        $promise->done($this->createCallback(1));
 
         Loop\tick();
 
@@ -549,7 +549,7 @@ class FunctionsTest extends TestCase
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -587,7 +587,7 @@ class FunctionsTest extends TestCase
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -607,7 +607,7 @@ class FunctionsTest extends TestCase
 
         $promise = new Coroutine(Stream\pipe($readable, $mock, false, 0, '!'));
 
-        $promise->done($this->createCallback(0), $this->createCallback(1));
+        $promise->done($this->createCallback(1));
 
         Loop\tick();
 
@@ -627,7 +627,7 @@ class FunctionsTest extends TestCase
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -669,7 +669,7 @@ class FunctionsTest extends TestCase
         $offset = 10;
         $char = substr(self::WRITE_STRING, $offset, 1);
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -697,7 +697,7 @@ class FunctionsTest extends TestCase
 
         Loop\tick();
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -737,7 +737,7 @@ class FunctionsTest extends TestCase
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnCallback(function () {
@@ -771,7 +771,7 @@ class FunctionsTest extends TestCase
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -813,7 +813,7 @@ class FunctionsTest extends TestCase
 
         $length = 8;
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -854,7 +854,7 @@ class FunctionsTest extends TestCase
 
         new Coroutine($writable->write(self::WRITE_STRING));
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -896,7 +896,7 @@ class FunctionsTest extends TestCase
 
         $length = 8;
 
-        $mock = $this->getMock(WritableStreamInterface::class);
+        $mock = $this->getMock(WritableStream::class);
 
         $mock->method('isWritable')
             ->will($this->returnValue(true));
@@ -1186,7 +1186,7 @@ class FunctionsTest extends TestCase
     {
         $pipe1 = Stream\stdin();
 
-        $this->assertInstanceOf(ReadableStreamInterface::class, $pipe1);
+        $this->assertInstanceOf(ReadableStream::class, $pipe1);
 
         $pipe2 = Stream\stdin();
 
@@ -1197,7 +1197,7 @@ class FunctionsTest extends TestCase
     {
         $pipe1 = Stream\stdout();
 
-        $this->assertInstanceOf(WritableStreamInterface::class, $pipe1);
+        $this->assertInstanceOf(WritableStream::class, $pipe1);
 
         $pipe2 = Stream\stdout();
 
@@ -1208,7 +1208,7 @@ class FunctionsTest extends TestCase
     {
         $pipe1 = Stream\stderr();
 
-        $this->assertInstanceOf(WritableStreamInterface::class, $pipe1);
+        $this->assertInstanceOf(WritableStream::class, $pipe1);
 
         $pipe2 = Stream\stderr();
 

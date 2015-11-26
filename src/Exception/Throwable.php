@@ -7,6 +7,6 @@
  * @license MIT See the LICENSE file that was distributed with this source code for more information.
  */
 
-namespace Icicle\Stream;
+namespace Icicle\Stream\Exception;
 
-interface DuplexStreamInterface extends ReadableStreamInterface, WritableStreamInterface {}
+interface Throwable extends \Icicle\Exception\Throwable {}

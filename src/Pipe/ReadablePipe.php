@@ -10,26 +10,25 @@
 namespace Icicle\Stream\Pipe;
 
 use Exception;
+use Icicle\Awaitable\Delayed;
+use Icicle\Awaitable\Exception\TimeoutException;
+use Icicle\Exception\InvalidArgumentError;
 use Icicle\Loop;
-use Icicle\Promise\Deferred;
-use Icicle\Promise\Exception\TimeoutException;
 use Icicle\Stream\Exception\BusyError;
-use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\FailureException;
-use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\UnreadableException;
-use Icicle\Stream\ReadableStreamInterface;
+use Icicle\Stream\ReadableStream;
 use Icicle\Stream\StreamResource;
 
-class ReadablePipe extends StreamResource implements ReadableStreamInterface
+class ReadablePipe extends StreamResource implements ReadableStream
 {
     /**
-     * @var \Icicle\Promise\Deferred|null
+     * @var \Icicle\Awaitable\Delayed|null
      */
-    private $deferred;
+    private $delayed;
 
     /**
-     * @var \Icicle\Loop\Events\SocketEventInterface
+     * @var \Icicle\Loop\Watcher\Io
      */
     private $poll;
 
@@ -66,15 +65,13 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      */
     private function free(Exception $exception = null)
     {
+        parent::close();
+
         $this->poll->free();
 
-        if (null !== $this->deferred) {
-            $this->deferred->getPromise()->cancel(
-                $exception ?: new ClosedException('The stream was unexpectedly closed.')
-            );
+        if (null !== $this->delayed && $this->delayed->isPending()) {
+            $this->delayed->resolve('');
         }
-
-        parent::close();
     }
 
     /**
@@ -82,7 +79,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      */
     public function read($length = 0, $byte = null, $timeout = 0)
     {
-        if (null !== $this->deferred) {
+        if (null !== $this->delayed) {
             throw new BusyError('Already waiting on stream.');
         }
 
@@ -93,7 +90,9 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
         $length = (int) $length;
         if (0 > $length) {
             throw new InvalidArgumentError('The length must be a non-negative integer.');
-        } elseif (0 === $length) {
+        }
+
+        if (0 === $length) {
             $length = self::CHUNK_SIZE;
         }
 
@@ -110,14 +109,13 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
 
             $this->poll->listen($timeout);
 
-            $this->deferred = new Deferred(function () {
-                $this->poll->cancel();
-            });
+            $this->delayed = new Delayed();
 
             try {
-                yield $this->deferred->getPromise();
+                yield $this->delayed;
             } finally {
-                $this->deferred = null;
+                $this->poll->cancel();
+                $this->delayed = null;
             }
         }
 
@@ -134,11 +132,11 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
      *     if no data is received. Use null for no timeout.
      *
-     * @return \Icicle\Promise\PromiseInterface
+     * @return \Generator
      *
      * @resolve string Empty string.
      *
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\FailureException If the stream buffer is not empty.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
@@ -146,7 +144,7 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
      */
     public function poll($timeout = 0)
     {
-        if (null !== $this->deferred) {
+        if (null !== $this->delayed) {
             throw new BusyError('Already waiting on stream.');
         }
 
@@ -160,14 +158,13 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
 
         $this->poll->listen($timeout);
 
-        $this->deferred = new Deferred(function () {
-            $this->poll->cancel();
-        });
+        $this->delayed = new Delayed();
 
         try {
-            yield $this->deferred->getPromise();
+            yield $this->delayed;
         } finally {
-            $this->deferred = null;
+            $this->poll->cancel();
+            $this->delayed = null;
         }
     }
 
@@ -241,17 +238,17 @@ class ReadablePipe extends StreamResource implements ReadableStreamInterface
     }
 
     /**
-     * @return \Icicle\Loop\Events\SocketEventInterface
+     * @return \Icicle\Loop\Watcher\Io
      */
     private function createPoll()
     {
         return Loop\poll($this->getResource(), function ($resource, $expired) {
             if ($expired) {
-                $this->deferred->reject(new TimeoutException('The connection timed out.'));
+                $this->delayed->reject(new TimeoutException('The connection timed out.'));
                 return;
             }
 
-            $this->deferred->resolve($this->buffer);
+            $this->delayed->resolve($this->buffer);
         });
     }
 }

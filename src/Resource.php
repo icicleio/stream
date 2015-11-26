@@ -9,9 +9,21 @@
 
 namespace Icicle\Stream;
 
-interface StreamResourceInterface extends StreamInterface
+interface Resource
 {
     const CHUNK_SIZE = 8192; // 8kB
+
+    /**
+     * Determines if the resource is still open.
+     *
+     * @return bool
+     */
+    public function isOpen();
+
+    /**
+     * Closes the resource, making it unreadable or unwritable.
+     */
+    public function close();
 
     /**
      * Returns the stream resource or null if the resource has been closed.

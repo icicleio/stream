@@ -10,21 +10,20 @@
 namespace Icicle\Stream\Pipe;
 
 use Exception;
+use Icicle\Awaitable\Delayed;
+use Icicle\Awaitable\Exception\TimeoutException;
 use Icicle\Loop;
-use Icicle\Promise\Deferred;
-use Icicle\Promise\Exception\TimeoutException;
-use Icicle\Stream\Exception\BusyError;
 use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\FailureException;
 use Icicle\Stream\Exception\UnwritableException;
 use Icicle\Stream\StreamResource;
-use Icicle\Stream\WritableStreamInterface;
+use Icicle\Stream\WritableStream;
 
-class WritablePipe extends StreamResource implements WritableStreamInterface
+class WritablePipe extends StreamResource implements WritableStream
 {
     /**
      * Queue of data to write and promises to resolve when that data is written (or fails to write).
-     * Data is stored as an array: [string, int, int|float|null, Deferred].
+     * Data is stored as an array: [string, int, int|float|null, Delayed].
      *
      * @var \SplQueue
      */
@@ -36,7 +35,7 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
     private $writable = true;
 
     /**
-     * @var \Icicle\Loop\Events\SocketEventInterface
+     * @var \Icicle\Loop\Watcher\Io
      */
     private $await;
 
@@ -69,19 +68,19 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
      */
     private function free(Exception $exception = null)
     {
+        parent::close();
+
         $this->writable = false;
 
         $this->await->free();
 
         while (!$this->writeQueue->isEmpty()) {
-            /** @var \Icicle\Promise\Deferred $deferred */
-            list( , , , $deferred) = $this->writeQueue->shift();
-            $deferred->getPromise()->cancel(
+            /** @var \Icicle\Awaitable\Delayed $delayed */
+            list( , , , $delayed) = $this->writeQueue->shift();
+            $delayed->cancel(
                 $exception = $exception ?: new ClosedException('The stream was unexpectedly closed.')
             );
         }
-
-        parent::close();
     }
 
     /**
@@ -135,14 +134,14 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
                 $data = substr($data, $written);
             }
 
-            $deferred = new Deferred();
-            $this->writeQueue->push([$data, $written, $timeout, $deferred]);
+            $delayed = new Delayed();
+            $this->writeQueue->push([$data, $written, $timeout, $delayed]);
 
             if (!$this->await->isPending()) {
                 $this->await->listen($timeout);
             }
 
-            yield $deferred->getPromise();
+            yield $delayed;
         } catch (Exception $exception) {
             if ($this->isOpen()) {
                 $this->free($exception);
@@ -164,12 +163,14 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
     }
 
     /**
+     * @coroutine
+     *
      * Returns a coroutine that is fulfilled when the stream is ready to receive data (output buffer is not full).
      *
      * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
      *     if the data cannot be written to the stream. Use null for no timeout.
      *
-     * @return \Icicle\Promise\PromiseInterface
+     * @return \Generator
      *
      * @resolve int Always resolves with 0.
      *
@@ -182,15 +183,15 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
             throw new UnwritableException('The stream is no longer writable.');
         }
 
-        $deferred = new Deferred();
-        $this->writeQueue->push(['', 0, $timeout, $deferred]);
+        $delayed = new Delayed();
+        $this->writeQueue->push(['', 0, $timeout, $delayed]);
 
         if (!$this->await->isPending()) {
             $this->await->listen($timeout);
         }
 
         try {
-            yield $deferred->getPromise();
+            yield $delayed;
         } catch (Exception $exception) {
             if ($this->isOpen()) {
                 $this->free($exception);
@@ -250,7 +251,7 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
     }
 
     /**
-     * @return \Icicle\Loop\Events\SocketEventInterface
+     * @return \Icicle\Loop\Watcher\Io
      */
     private function createAwait()
     {
@@ -260,27 +261,27 @@ class WritablePipe extends StreamResource implements WritableStreamInterface
                 return;
             }
 
-            /** @var \Icicle\Promise\Deferred $deferred */
-            list($data, $previous, $timeout, $deferred) = $this->writeQueue->shift();
+            /** @var \Icicle\Awaitable\Delayed $delayed */
+            list($data, $previous, $timeout, $delayed) = $this->writeQueue->shift();
 
             $length = strlen($data);
 
             if (0 === $length) {
-                $deferred->resolve($previous);
+                $delayed->resolve($previous);
             } else {
                 try {
                     $written = $this->push($resource, $data, true);
                 } catch (Exception $exception) {
-                    $deferred->reject($exception);
+                    $delayed->reject($exception);
                     return;
                 }
 
                 if ($length <= $written) {
-                    $deferred->resolve($written + $previous);
+                    $delayed->resolve($written + $previous);
                 } else {
                     $data = substr($data, $written);
                     $written += $previous;
-                    $this->writeQueue->unshift([$data, $written, $timeout, $deferred]);
+                    $this->writeQueue->unshift([$data, $written, $timeout, $delayed]);
                 }
             }
 

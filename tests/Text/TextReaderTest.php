@@ -21,7 +21,7 @@ use Icicle\Tests\Stream\TestCase;
 class TextReaderTest extends TestCase
 {
     /**
-     * @expectedException Icicle\Stream\Exception\InvalidArgumentError
+     * @expectedException \Icicle\Exception\InvalidArgumentError
      */
     public function testInvalidEncodingThrows()
     {

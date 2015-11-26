@@ -9,4 +9,4 @@
 
 namespace Icicle\Stream\Exception;
 
-class UnreadableException extends Exception {}
+class UnreadableException extends \Exception implements Exception {}

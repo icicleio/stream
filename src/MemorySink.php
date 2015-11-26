@@ -9,7 +9,7 @@
 
 namespace Icicle\Stream;
 
-use Icicle\Stream\Exception\InvalidArgumentError;
+use Icicle\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\OutOfBoundsException;
 use Icicle\Stream\Exception\UnreadableException;
 use Icicle\Stream\Exception\UnseekableException;
@@ -21,7 +21,7 @@ use Icicle\Stream\Exception\UnwritableException;
  * may be determined with tell(). Since all data remains in the sink, the entire length of the sink is available with
  * getLength().
  */
-class MemorySink implements DuplexStreamInterface, SeekableStreamInterface
+class MemorySink implements DuplexStream, SeekableStream
 {
     /**
      * @var bool
