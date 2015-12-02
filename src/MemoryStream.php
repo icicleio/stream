@@ -128,7 +128,7 @@ class MemoryStream implements DuplexStream
      */
     public function read($length = 0, $byte = null, $timeout = 0)
     {
-        if (null !== $this->delayed && $this->delayed->isPending()) {
+        if (null !== $this->delayed) {
             throw new BusyError('Already waiting to read from stream.');
         }
 
@@ -170,7 +170,11 @@ class MemoryStream implements DuplexStream
             $awaitable = $this->delayed->timeout($timeout);
         }
 
-        yield $awaitable;
+        try {
+            yield $awaitable;
+        } finally {
+            $this->delayed = null;
+        }
     }
 
     /**
