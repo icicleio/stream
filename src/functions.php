@@ -70,32 +70,20 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
 
         $bytes = 0;
 
-        try {
-            do {
-                $data = (yield $source->read($length, $byte, $timeout));
+        do {
+            $data = (yield $source->read($length, $byte, $timeout));
 
-                $count = strlen($data);
-                $bytes += $count;
+            $count = strlen($data);
+            $bytes += $count;
 
-                if ($count) {
-                    yield $destination->write($data, $timeout);
-                }
-            } while ($source->isReadable()
-                && $destination->isWritable()
-                && (null === $byte || $data[$count - 1] !== $byte)
-                && (0 === $length || 0 < $length -= $count)
-            );
-        } catch (\Exception $exception) {
-            if ($end) {
-                $source->close();
-                if ($destination->isWritable()) {
-                    yield $destination->end();
-                } else {
-                    $destination->close();
-                }
+            if ($count) {
+                yield $destination->write($data, $timeout);
             }
-            throw $exception;
-        }
+        } while ($source->isReadable()
+            && $destination->isWritable()
+            && (null === $byte || $data[$count - 1] !== $byte)
+            && (0 === $length || 0 < $length -= $count)
+        );
 
         if ($end) {
             $source->close();
