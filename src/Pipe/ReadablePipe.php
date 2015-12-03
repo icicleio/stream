@@ -69,7 +69,7 @@ class ReadablePipe extends StreamResource implements ReadableStream
 
         $this->poll->free();
 
-        if (null !== $this->delayed && $this->delayed->isPending()) {
+        if (null !== $this->delayed) {
             $this->delayed->resolve('');
         }
     }
@@ -113,8 +113,10 @@ class ReadablePipe extends StreamResource implements ReadableStream
 
             try {
                 yield $this->delayed;
-            } finally {
+            } catch (\Exception $exception) {
                 $this->poll->cancel();
+                throw $exception;
+            } finally {
                 $this->delayed = null;
             }
         }
@@ -162,8 +164,10 @@ class ReadablePipe extends StreamResource implements ReadableStream
 
         try {
             yield $this->delayed;
-        } finally {
+        } catch (\Exception $exception) {
             $this->poll->cancel();
+            throw $exception;
+        } finally {
             $this->delayed = null;
         }
     }
