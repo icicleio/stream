@@ -421,10 +421,15 @@ class WritablePipeTest extends PipeTest
     {
         list($readable, $writable) = $this->createStreams();
 
+        $await = $this->getMockBuilder(Io::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
         $loop = $this->getMock(LoopInterface::class);
 
         $loop->expects($this->once())
-            ->method('await');
+            ->method('await')
+            ->will($this->returnValue($await));
 
         Loop\loop($loop);
 

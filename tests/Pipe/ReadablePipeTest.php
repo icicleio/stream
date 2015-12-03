@@ -1011,10 +1011,15 @@ class ReadablePipeTest extends PipeTest
     {
         list($readable, $writable) = $this->createStreams();
 
+        $poll = $this->getMockBuilder(Io::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
         $loop = $this->getMock(LoopInterface::class);
 
         $loop->expects($this->once())
-            ->method('poll');
+            ->method('poll')
+            ->will($this->returnValue($poll));
 
         Loop\loop($loop);
 
