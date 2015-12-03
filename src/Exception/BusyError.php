@@ -9,4 +9,4 @@
 
 namespace Icicle\Stream\Exception;
 
-class BusyError extends \Exception implements Error {}
+class BusyError extends \Error implements Error {}
