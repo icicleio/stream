@@ -9,11 +9,11 @@
 
 namespace Icicle\Tests\Stream\Pipe;
 
+use Icicle\Awaitable\Exception\TimeoutException;
 use Icicle\Coroutine\Coroutine;
 use Icicle\Loop;
-use Icicle\Loop\Events\SocketEventInterface;
-use Icicle\Loop\LoopInterface;
-use Icicle\Promise\Exception\TimeoutException;
+use Icicle\Loop\Loop as LoopInterface;
+use Icicle\Loop\Watcher\Io;
 use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\FailureException;
 use Icicle\Stream\Exception\UnwritableException;
@@ -23,7 +23,7 @@ use Icicle\Stream\Pipe\WritablePipe;
 class WritablePipeTest extends PipeTest
 {
     /**
-     * @return \Icicle\Stream\ReadableStreamInterface[]|\Icicle\Stream\WritableStreamInterface[]
+     * @return \Icicle\Stream\ReadableStream[]|\Icicle\Stream\WritableStream[]
      */
     public function createStreams()
     {
@@ -445,7 +445,10 @@ class WritablePipeTest extends PipeTest
 
         $timeout = 1;
 
-        $await = $this->getMock(SocketEventInterface::class);
+        $await = $this->getMockBuilder(Io::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
         $await->expects($this->once())
             ->method('listen')
             ->with($timeout);

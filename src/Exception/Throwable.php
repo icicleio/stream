@@ -9,4 +9,4 @@
 
 namespace Icicle\Stream\Exception;
 
-class FailureException extends \Exception implements Exception {}
+interface Throwable extends \Icicle\Exception\Throwable {}

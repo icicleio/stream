@@ -9,11 +9,11 @@
 
 namespace Icicle\Stream;
 
-use Icicle\Promise\Deferred;
+use Icicle\Awaitable\Delayed;
+use Icicle\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\{
     BusyError,
     ClosedException,
-    InvalidArgumentError,
     UnreadableException,
     UnwritableException
 };
@@ -23,7 +23,7 @@ use Icicle\Stream\Exception\{
  * the buffer. This class by itself is not particularly useful, but it can be extended to add functionality upon reading 
  * or writing, as well as acting as an example of how stream classes can be implemented.
  */
-class MemoryStream implements DuplexStreamInterface
+class MemoryStream implements DuplexStream
 {
     /**
      * @var \Icicle\Stream\Structures\Buffer
@@ -41,9 +41,9 @@ class MemoryStream implements DuplexStreamInterface
     private $writable = true;
     
     /**
-     * @var \Icicle\Promise\Deferred|null
+     * @var \Icicle\Awaitable\Delayed|null
      */
-    private $deferred;
+    private $delayed;
     
     /**
      * @var int
@@ -109,17 +109,15 @@ class MemoryStream implements DuplexStreamInterface
         $this->open = false;
         $this->writable = false;
 
-        if (null !== $this->deferred) {
-            $this->deferred->getPromise()->cancel(
-                $exception = $exception ?: new ClosedException('The stream was unexpectedly closed.')
-            );
+        if (null !== $this->delayed) {
+            $this->delayed->resolve('');
         }
 
         if (0 !== $this->hwm) {
             while (!$this->queue->isEmpty()) {
-                /** @var \Icicle\Promise\Deferred $deferred */
-                $deferred = $this->queue->shift();
-                $deferred->getPromise()->cancel(
+                /** @var \Icicle\Awaitable\Delayed $delayed */
+                $delayed = $this->queue->shift();
+                $delayed->cancel(
                     $exception = $exception ?: new ClosedException('The stream was unexpectedly closed.')
                 );
             }
@@ -131,7 +129,7 @@ class MemoryStream implements DuplexStreamInterface
      */
     public function read(int $length = 0, string $byte = null, float $timeout = 0): \Generator
     {
-        if (null !== $this->deferred) {
+        if (null !== $this->delayed) {
             throw new BusyError('Already waiting to read from stream.');
         }
 
@@ -151,9 +149,9 @@ class MemoryStream implements DuplexStreamInterface
 
             if (0 !== $this->hwm && $this->buffer->getLength() <= $this->hwm) {
                 while (!$this->queue->isEmpty()) {
-                    /** @var \Icicle\Promise\Deferred $deferred */
-                    $deferred = $this->queue->shift();
-                    $deferred->resolve();
+                    /** @var \Icicle\Awaitable\Delayed $delayed */
+                    $delayed = $this->queue->shift();
+                    $delayed->resolve();
                 }
             }
 
@@ -164,17 +162,17 @@ class MemoryStream implements DuplexStreamInterface
             return $data;
         }
 
-        $this->deferred = new Deferred();
-        $promise = $this->deferred->getPromise();
+        $awaitable = new Delayed();
+        $this->delayed = $awaitable;
 
         if ($timeout) {
-            $promise = $promise->timeout($timeout, 'Reading from the stream timed out.');
+            $awaitable = $this->delayed->timeout($timeout);
         }
 
         try {
-            return yield $promise;
+            return yield $awaitable;
         } finally {
-            $this->deferred = null;
+            $this->delayed = null;
         }
     }
 
@@ -231,7 +229,7 @@ class MemoryStream implements DuplexStreamInterface
      * @param float|int $timeout
      * @param bool $end
      *
-     * @return \Icicle\Promise\PromiseInterface
+     * @return \Generator
      *
      * @resolve int Number of bytes written to the stream.
      *
@@ -245,8 +243,8 @@ class MemoryStream implements DuplexStreamInterface
 
         $this->buffer->push($data);
 
-        if (null !== $this->deferred && !$this->buffer->isEmpty()) {
-            $this->deferred->resolve($this->remove());
+        if (null !== $this->delayed && !$this->buffer->isEmpty()) {
+            $this->delayed->resolve($this->remove());
         }
 
         if ($end) {
@@ -258,17 +256,16 @@ class MemoryStream implements DuplexStreamInterface
         }
 
         if (0 !== $this->hwm && $this->buffer->getLength() > $this->hwm) {
-            $deferred = new Deferred();
-            $this->queue->push($deferred);
+            $awaitable = new Delayed();
+            $this->queue->push($awaitable);
 
-            $promise = $deferred->getPromise();
             if ($timeout) {
-                $promise = $promise->timeout($timeout, 'Writing to the stream timed out.');
+                $awaitable = $awaitable->timeout($timeout);
             }
 
             try {
-                yield $promise;
-            } catch (\Throwable $exception) {
+                yield $awaitable;
+            } catch (Throwable $exception) {
                 if ($this->isOpen()) {
                     $this->free($exception);
                 }

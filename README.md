@@ -1,6 +1,6 @@
 # Asynchronous Streams for Icicle
 
-This library is a component for [Icicle](https://github.com/icicleio/Icicle), providing an asynchronous readable, writable, and seekable stream interfaces and a couple basic stream implementations. Like other Icicle components, this library uses [Promises](https://github.com/icicleio/Icicle/wiki/Promises) and [Generators](http://www.php.net/manual/en/language.generators.overview.php) for asynchronous operations that may be used to build [Coroutines](//github.com/icicleio/Icicle/wiki/Coroutines) to make writing asynchronous code more like writing synchronous code.
+This library is a component for [Icicle](https://github.com/icicleio/icicle), providing an asynchronous readable, writable, and seekable stream interfaces and a couple basic stream implementations. Like other Icicle components, this library uses [Coroutines](//github.com/icicleio/icicle/wiki/Coroutines) built from [Awaitables](https://github.com/icicleio/icicle/wiki/Awaitables) and [Generators](http://www.php.net/manual/en/language.generators.overview.php) to make writing asynchronous code more like writing synchronous code.
 
 [![Build Status](https://img.shields.io/travis/icicleio/stream/v1.x.svg?style=flat-square)](https://travis-ci.org/icicleio/stream)
 [![Coverage Status](https://img.shields.io/coveralls/icicleio/stream/v1.x.svg?style=flat-square)](https://coveralls.io/r/icicleio/stream)
@@ -10,7 +10,8 @@ This library is a component for [Icicle](https://github.com/icicleio/Icicle), pr
 
 ##### Requirements
 
-- PHP 5.5+
+- PHP 5.5+ for v0.5.x branch (current stable) and v1.x branch (mirrors current stable)
+- PHP 7 for v2.0 branch (under development) supporting generator delegation and return expressions
 
 ##### Installation
 
@@ -28,39 +29,41 @@ You can also manually edit `composer.json` to add this library as a project requ
 // composer.json
 {
     "require": {
-        "icicleio/stream": "^0.4"
+        "icicleio/stream": "^0.5"
     }
 }
 ```
 
-Streams represent a common promise-based API that may be implemented by classes that read or write sequences of binary data to facilitate interoperability. The stream component defines three interfaces, one of which should be used by all streams.
+Streams represent a common promise-based API that may be implemented by classes that read or write sequences of binary data to facilitate interoperability. The stream component defines three stream interfaces, one of which should be used by all streams, plus a seekable stream interface that can be combined with one of the other stream interfaces when a stream is seekable.
 
-- `Icicle\Stream\ReadableStreamInterface`: Interface to be used by streams that are only readable.
-- `Icicle\Stream\WritableStreamInterface`: Interface to be used by streams that are only writable.
-- `Icicle\Stream\DuplexStreamInterface`: Interface to be used by streams that are readable and writable. Extends both `Icicle\Stream\ReadableStreamInterface` and `Icicle\Stream\WritableStreamInterface`.
-- `Icicle\Stream\SeekableStreamInterface`: Interface to be used by seekable streams (readable and/or writable).
+- `Icicle\Stream\ReadableStream`: Interface to be used by streams that are only readable.
+- `Icicle\Stream\WritableStream`: Interface to be used by streams that are only writable.
+- `Icicle\Stream\DuplexStream`: Interface to be used by streams that are readable and writable. Extends both `Icicle\Stream\ReadableStream` and `Icicle\Stream\WritableStream`.
+- `Icicle\Stream\SeekableStream`: Interface to be used by seekable streams (readable and/or writable).
 
 ## Documentation
 
-- [StreamInterface](#streaminterface) - Basic stream interface.
+- [Stream](#streaminterface) - Basic stream interface.
     - [isOpen()](#isopen) - Determines if the stream is still open.
     - [close()](#close) - Closes the stream.
-- [ReadableStreamInterface](#readablestreaminterface) - Interface for readable streams.
+- [ReadableStream](#readablestream) - Interface for readable streams.
     - [read()](#read) - Read data from the stream.
     - [isReadable()](#isreadable) - Determines if the stream is readable.
-- [WritableStreamInterface](#writablestreaminterface) - Interface for writable streams.
+- [WritableStream](#writablestream) - Interface for writable streams.
     - [write()](#write) - Writes data to the stream.
     - [end()](#end) - Writes data to the stream then closes the stream.
     - [isWritable()](#isWritable)
-- [DuplexStreamInterface](#duplexstreaminterface) - Interface for streams that are readable and writable.
-- [SeekableStreamInterface](#seekablestreaminterface) - Interface for seekable streams.
+- [DuplexStream](#duplexstream) - Interface for streams that are readable and writable.
+- [SeekableStream](#seekablestream) - Interface for seekable streams.
     - [seek()](#seek) - Moves the stream pointer.
     - [tell()](#tell) - Returns the current position of the stream pointer.
     - [getLength()](#getlength) - Returns the length of the stream if known.
-- [MemoryStream](#memorystream) - Buffer that implements `Icicle\Stream\DuplexStreamInterface`.
-- [MemorySink](#memorysink) - Memory buffer that implements `Icicle\Stream\DuplexStreamInterface` and `Icicle\Stream\SeekableStreamInterface`.
-- [StreamResourceInterface](#streamresourceinterface)
-    - [getResource()](#getresource) - Returns the underlying stream resource.
+- [MemoryStream](#memorystream) - Buffer that implements `Icicle\Stream\DuplexStream`.
+- [MemorySink](#memorysink) - Memory buffer that implements `Icicle\Stream\DuplexStream` and `Icicle\Stream\SeekableStream`.
+- [Resource](#resource)
+    - [isOpen()](#isopen2) - Determines if the resource is still open.
+    - [close()](#close2) - Closes the resource.
+    - [getResource()](#getresource) - Returns the contained resource.
 - [ReadablePipe](#readablepipe)
     - [ReadablePipe Constructor](#readablepipe-constructor) - Creates a readable pipe from a stream resource.
 - [WritablePipe](#writablepipe)
@@ -91,14 +94,14 @@ To document the expected prototype of a callback function used as method argumen
 callable<(ArgumentType $arg): ReturnType>
 ```
 
-## StreamInterface
+## Stream
 
 All other stream interfaces extend this basic interface.
 
 #### isOpen()
 
 ```php
-StreamInterface::isOpen(): bool
+Stream::isOpen(): bool
 ```
 
 Determines if the stream is still open. A closed stream will be neither readable or writable.
@@ -108,17 +111,17 @@ Determines if the stream is still open. A closed stream will be neither readable
 #### close()
 
 ```php
-StreamInterface::close(): void
+Stream::close(): void
 ```
 
 Closes the stream. Once closed, a stream will no longer be readable or writable.
 
-## ReadableStreamInterface
+## ReadableStream
 
 #### read()
 
 ```php
-ReadableStreamInterface::read(
+ReadableStream::read(
     int $length = 0,
     string|null $byte = null,
     float $timeout = 0
@@ -132,7 +135,6 @@ Resolution | Type | Description
 Fulfilled | `string` | Any number of bytes or up to `$length` bytes if `$length` was not `0`.
 Rejected | `Icicle\Stream\Exception\BusyError` | If a read was already pending on the stream.
 Rejected | `Icicle\Stream\Exception\UnreadableException` | If the stream is no longer readable.
-Rejected | `Icicle\Stream\Exception\ClosedException` | If the stream is unexpectedly closed.
 Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the stream times out.
 
 ---
@@ -140,17 +142,17 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the str
 #### isReadable()
 
 ```php
-ReadableStreamInterface::isReadable(): bool
+ReadableStream::isReadable(): bool
 ```
 
 Determines if the stream is readable.
 
-## WritableStreamInterface
+## WritableStream
 
 #### write()
 
 ```php
-WritableStreamInterface::write(
+WritableStream::write(
     string $data,
     float $timeout = 0
 ): Generator
@@ -170,7 +172,7 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If writing to the strea
 #### end()
 
 ```php
-WritableStreamInterface::end(
+WritableStream::end(
     string $data = '',
     float $timeout = 0
 ): Generator
@@ -190,21 +192,21 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If writing to the strea
 #### isWritable()
 
 ```php
-WritableStreamInterface::isWritable(): bool
+WritableStream::isWritable(): bool
 ```
 
 Determines if the stream is writable.
 
-## DuplexStreamInterface
+## DuplexStream
 
-A duplex stream is both readable and writable. `Icicle\Stream\DuplexStreamInterface` extends both `Icicle\Stream\ReadableStreamInterface` and `Icicle\Stream\WritableStreamInterface`, and therefore inherits all the methods above.
+A duplex stream is both readable and writable. `Icicle\Stream\DuplexStream` extends both `Icicle\Stream\ReadableStream` and `Icicle\Stream\WritableStream`, and therefore inherits all the methods above.
 
-## SeekableStreamInterface
+## SeekableStream
 
 #### seek()
 
 ```php
-SeekableStreamInterface::seek(
+SeekableStream::seek(
     int $position,
     int $whence = SEEK_SET,
     float $timeout = 0
@@ -225,31 +227,24 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If seeking times out.
 #### tell()
 
 ```php
-SeekableStreamInterface::tell(): int
+SeekableStream::tell(): int
 ```
 
 Returns the current pointer position. Value returned may not reflect the future pointer position if a read, write, or seek operation is pending.
-
-Resolution | Type | Description
-:-: | :-- | :--
-Fulfilled | `int` | Fulfilled with the number of bytes written when the data has actually been written to the stream.
-Rejected | `Icicle\Stream\Exception\UnwritableException` | If the stream is no longer writable.
-Rejected | `Icicle\Stream\Exception\ClosedException` | If the stream is unexpectedly closed.
-Rejected | `Icicle\Promise\Exception\TimeoutException` | If writing to the stream times out.
 
 ---
 
 #### getLength()
 
 ```php
-SeekableStreamInterface::getLength(): int
+SeekableStream::getLength(): int
 ```
 
 Returns the total length of the stream if known, otherwise -1. Value returned may not reflect a pending write operation.
 
 ## MemoryStream
 
-`Icicle\Stream\MemoryStream` objects act as a buffer that implements `Icicle\Stream\DuplexStreamInterface`, allowing consumers to be notified when data is available in the buffer. This class by itself is not particularly useful, but it can be extended to add functionality upon reading or writing, as well as acting as an example of how stream classes can be implemented.
+`Icicle\Stream\MemoryStream` objects act as a buffer that implements `Icicle\Stream\DuplexStream`, allowing consumers to be notified when data is available in the buffer. This class by itself is not particularly useful, but it can be extended to add functionality upon reading or writing, as well as acting as an example of how stream classes can be implemented.
 
 Anything written to an instance of `Icicle\Stream\MemoryStream` is immediately readable.
 
@@ -299,31 +294,51 @@ $coroutine = Coroutine\create(function () {
 echo $coroutine->wait(); // Echoes "This is just a sink test."
 ```
 
-## StreamResourceInterface
+## Resource
 
-All stream resource (pipe) classes in this package (and some other packages suck as [socket](https://github.com/icicleio/socket)) implement `Icicle\Stream\StreamResourceInterface`. This interface extends `Icicle\Stream\StreamInterface`.
+All stream resource (pipe) classes in this package (and some other packages suck as [socket](https://github.com/icicleio/socket)) implement `Icicle\Stream\Resource`.
 
-#### getResource()
+#### isOpen()
 
 ```php
-StreamResourceInterface::getResource(): resource
+Stream::isOpen(): bool
 ```
 
-Returns the underlying PHP stream resource.
+Determines if the resource is still open.
 
 ---
 
 #### close()
 
 ```php
-StreamResourceInterface::close(): void
+Stream::close(): void
+```
+
+Closes the resource. Once closed, a resource will no longer be usable.
+
+---
+
+#### getResource()
+
+```php
+Resource::getResource(): resource
+```
+
+Returns the contained PHP resource.
+
+---
+
+#### close()
+
+```php
+Resource::close(): void
 ```
 
 Closes the stream resource, making it unreadable or unwritable.
 
 ## ReadablePipe
 
-`Icicle\Stream\Pipe\ReadablePipe` implements `Icicle\Stream\ReadableStreamInterface`, so it is interoperable with any other class implementing one of the stream interfaces.
+`Icicle\Stream\Pipe\ReadablePipe` implements `Icicle\Stream\ReadableStream`, so it is interoperable with any other class implementing one of the stream interfaces.
 
 When the other end of the connection is closed and a read is pending, that read will be fulfilled with an empty string. Subsequent reads will then reject with an instance of `Icicle\Stream\Exception\UnreadableException` and `isReadable()` will return `false`.
 
@@ -337,7 +352,7 @@ Creates a readable stream from the given stream resource (note only stream resou
 
 ## WritablePipe
 
-`Icicle\Stream\Pipe\WritablePipe` implements `Icicle\Stream\WritableStreamInterface`, so it is interoperable with any other class implementing one of the stream interfaces.
+`Icicle\Stream\Pipe\WritablePipe` implements `Icicle\Stream\WritableStream`, so it is interoperable with any other class implementing one of the stream interfaces.
 
 #### WritablePipe Constructor
 
@@ -349,7 +364,7 @@ Creates a writable stream from the given stream resource (note only stream resou
 
 ## DuplexPipe
 
-`Icicle\Stream\Pipe\DuplexPipe` implements `Icicle\Stream\DuplexStreamInterface`, making it both a readable stream and a writable stream.
+`Icicle\Stream\Pipe\DuplexPipe` implements `Icicle\Stream\DuplexStream`, making it both a readable stream and a writable stream.
 
 #### DuplexPipe Constructor
 
@@ -365,8 +380,8 @@ Creates a duplex stream from the given stream resource (note only stream resourc
 
 ```php
 Icicle\Stream\pipe(
-    ReadableStreamInterface $source
-    WritableStreamInterface $destination,
+    ReadableStream $source
+    WritableStream $destination,
     bool $end = true,
     int $length = 0,
     string|null $byte = null
@@ -381,7 +396,6 @@ Resolution | Type | Description
 Fulfilled | `int` | Fulfilled when the writable stream is no longer writable or when `$length` bytes have been piped or `$byte` is read from the stream.
 Rejected | `Icicle\Stream\Exception\BusyError` | If a read was already pending on the stream.
 Rejected | `Icicle\Stream\Exception\UnreadableException` | If the stream is no longer readable.
-Rejected | `Icicle\Stream\Exception\ClosedException` | If the stream is unexpectedly closed.
 Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the stream times out.
 
 ---
@@ -390,7 +404,7 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the str
 
 ```php
 Icicle\Stream\readTo(
-    ReadableStreamInterface $source
+    ReadableStream $source
     int $length,
     float $timeout = 0
 ): Generator
@@ -403,7 +417,6 @@ Resolution | Type | Description
 Fulfilled | `string` | Fulfilled when the given number of bytes is read from the stream.
 Rejected | `Icicle\Stream\Exception\BusyError` | If a read was already pending on the stream.
 Rejected | `Icicle\Stream\Exception\UnreadableException` | If the stream is no longer readable.
-Rejected | `Icicle\Stream\Exception\ClosedException` | If the stream is unexpectedly closed.
 Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the stream times out.
 
 ---
@@ -412,7 +425,7 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the str
 
 ```php
 Icicle\Stream\readUntil(
-    ReadableStreamInterface $source
+    ReadableStream $source
     string $needle,
     int $maxlength = 0,
     float $timeout = 0
@@ -426,7 +439,6 @@ Resolution | Type | Description
 Fulfilled | `string` | Fulfilled when the given string is read from the stream or the max length is reached.
 Rejected | `Icicle\Stream\Exception\BusyError` | If a read was already pending on the stream.
 Rejected | `Icicle\Stream\Exception\UnreadableException` | If the stream is no longer readable.
-Rejected | `Icicle\Stream\Exception\ClosedException` | If the stream is unexpectedly closed.
 Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the stream times out.
 
 ---
@@ -435,7 +447,7 @@ Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the str
 
 ```php
 Icicle\Stream\readAll(
-    ReadableStreamInterface $source
+    ReadableStream $source
     int $maxlength = 0,
     float $timeout = 0
 ): Generator
@@ -448,7 +460,6 @@ Resolution | Type | Description
 Fulfilled | `string` | Fulfilled when the stream is no longer readable or the max length is reached.
 Rejected | `Icicle\Stream\Exception\BusyError` | If a read was already pending on the stream.
 Rejected | `Icicle\Stream\Exception\UnreadableException` | If the stream is no longer readable.
-Rejected | `Icicle\Stream\Exception\ClosedException` | If the stream is unexpectedly closed.
 Rejected | `Icicle\Promise\Exception\TimeoutException` | If reading from the stream times out.
 
 ---
@@ -466,7 +477,7 @@ Returns a pair of connected stream socket resources.
 #### Stream\stdin()
 
 ```php
-Icicle\Stream\stdin(): ReadableStreamInterface
+Icicle\Stream\stdin(): ReadableStream
 ```
 
 Returns a global readable stream instance for STDIN. 
@@ -476,7 +487,7 @@ Returns a global readable stream instance for STDIN.
 #### Stream\stdout()
 
 ```php
-Icicle\Stream\stdout(): WritableStreamInterface
+Icicle\Stream\stdout(): WritableStream
 ```
 
 Returns a global writable stream instance for STDOUT. 
@@ -486,7 +497,7 @@ Returns a global writable stream instance for STDOUT.
 #### Stream\stderr()
 
 ```php
-Icicle\Stream\stderr(): WritableStreamInterface
+Icicle\Stream\stderr(): WritableStream
 ```
 
 Returns a global writable stream instance for STDERR. 

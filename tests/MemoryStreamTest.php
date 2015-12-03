@@ -10,13 +10,13 @@
 namespace Icicle\Tests\Stream;
 
 use Exception;
+use Icicle\Awaitable\Exception\TimeoutException;
 use Icicle\Coroutine\Coroutine;
+use Icicle\Exception\InvalidArgumentError;
 use Icicle\Loop;
 use Icicle\Loop\SelectLoop;
-use Icicle\Promise\Exception\TimeoutException;
 use Icicle\Stream\Exception\BusyError;
 use Icicle\Stream\Exception\ClosedException;
-use Icicle\Stream\Exception\InvalidArgumentError;
 use Icicle\Stream\Exception\UnreadableException;
 use Icicle\Stream\Exception\UnwritableException;
 use Icicle\Stream\MemoryStream;
@@ -97,9 +97,9 @@ class MemoryStreamTest extends TestCase
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
-            ->with($this->isInstanceOf(ClosedException::class));
+            ->with($this->identicalTo(''));
 
-        $promise->done($this->createCallback(0), $callback);
+        $promise->done($callback);
 
         $readable->close();
 
@@ -412,9 +412,9 @@ class MemoryStreamTest extends TestCase
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
-            ->with($this->isInstanceOf(ClosedException::class));
+            ->with($this->identicalTo(''));
 
-        $promise->done($this->createCallback(0), $callback);
+        $promise->done($callback);
 
         $readable->close();
 
@@ -886,9 +886,9 @@ class MemoryStreamTest extends TestCase
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
-            ->with($this->isInstanceOf(ClosedException::class));
+            ->with($this->identicalTo(''));
 
-        $promise->done($this->createCallback(0), $callback);
+        $promise->done($callback);
 
         $promise = new Coroutine($writable->end());
 

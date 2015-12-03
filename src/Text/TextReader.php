@@ -9,19 +9,19 @@
 
 namespace Icicle\Stream\Text;
 
+use Icicle\Exception\{InvalidArgumentError, UnsupportedError};
 use Icicle\Stream;
-use Icicle\Stream\Exception\{Error, InvalidArgumentError};
-use Icicle\Stream\{ReadableStreamInterface, StreamInterface, Structures\Buffer};
+use Icicle\Stream\{ReadableStream, Structures\Buffer};
 
 /**
  * Reads text from a stream.
  *
  * Requires mbstring to be available to do proper character decoding.
  */
-class TextReader implements StreamInterface
+class TextReader
 {
     /**
-     * @var \Icicle\Stream\ReadableStreamInterface The stream to read from.
+     * @var \Icicle\Stream\ReadableStream The stream to read from.
      */
     private $stream;
 
@@ -43,13 +43,15 @@ class TextReader implements StreamInterface
     /**
      * Creates a new stream reader for a given stream.
      *
-     * @param \Icicle\Stream\ReadableStreamInterface $stream The stream to read from.
+     * @param \Icicle\Stream\ReadableStream $stream The stream to read from.
      * @param string $encoding The character encoding to use.
+     *
+     * @throws \Icicle\Exception\UnsupportedError Thrown if the mbstring extension is not loaded.
      */
-    public function __construct(ReadableStreamInterface $stream, string $encoding = 'UTF-8')
+    public function __construct(ReadableStream $stream, string $encoding = 'UTF-8')
     {
         if (!extension_loaded('mbstring')) {
-            throw new Error('The mbstring extension is not loaded.');
+            throw new UnsupportedError('The mbstring extension is not loaded.');
         }
 
         if (!in_array($encoding, mb_list_encodings())) {
@@ -65,9 +67,9 @@ class TextReader implements StreamInterface
     /**
      * Gets the underlying stream.
      *
-     * @return \Icicle\Stream\ReadableStreamInterface
+     * @return \Icicle\Stream\ReadableStream
      */
-    public function getStream(): ReadableStreamInterface
+    public function getStream(): ReadableStream
     {
         return $this->stream;
     }
@@ -103,10 +105,10 @@ class TextReader implements StreamInterface
      *
      * @resolve string String of characters read from the stream.
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function peek(int $length = 1, float $timeout = 0): \Generator
     {
@@ -131,10 +133,10 @@ class TextReader implements StreamInterface
      *
      * @resolve string String of characters read from the stream.
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function read(int $length = 1, float $timeout = 0): \Generator
     {
@@ -157,10 +159,10 @@ class TextReader implements StreamInterface
      *
      * @resolve string A line of text read from the stream.
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function readLine(float $timeout = 0): \Generator
     {
@@ -195,10 +197,10 @@ class TextReader implements StreamInterface
      *
      * @resolve string The contents of the stream.
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function readAll(int $maxlength = 0, float $timeout = 0): \Generator
     {
@@ -221,10 +223,10 @@ class TextReader implements StreamInterface
      *
      * @resolve array An array of parsed values.
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      *
      * @see http://php.net/sscanf
      */

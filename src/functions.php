@@ -9,20 +9,23 @@
 
 namespace Icicle\Stream;
 
-use Icicle\Stream\Exception\{Error, FailureException, InvalidArgumentError, UnwritableException};
+use Icicle\Exception\{InvalidArgumentError, UnsupportedError};
+use Icicle\Stream\Exception\{FailureException, UnwritableException};
 use Icicle\Stream\Pipe\{ReadablePipe, WritablePipe};
 
 // @codeCoverageIgnoreStart
 if (strlen('…') !== 3) {
-    throw new Error('The mbstring.func_overload ini setting is enabled. It must be disable to use the stream package.');
+    throw new UnsupportedError(
+        'The mbstring.func_overload ini setting is enabled. It must be disable to use the stream package.'
+    );
 } // @codeCoverageIgnoreEnd
 
 if (!function_exists(__NAMESPACE__ . '\pipe')) {
     /**
      * @coroutine
      *
-     * @param \Icicle\Stream\ReadableStreamInterface $source
-     * @param \Icicle\Stream\WritableStreamInterface $destination
+     * @param \Icicle\Stream\ReadableStream $source
+     * @param \Icicle\Stream\WritableStream $destination
      * @param bool $end If true, calls close() on the source stream and calls end() on the destination stream when
      *     piping ends, either due to completion or on error.
      * @param int $length The number of bytes to pipe. Use 0 for any number of bytes.
@@ -35,19 +38,19 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @resolve int
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
+     * @throws \Icicle\Exception\InvalidArgumentError If the length is invalid.
      * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
-     * @throws \Icicle\Stream\Exception\InvalidArgumentError If the length is invalid.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     function pipe(
-        ReadableStreamInterface $source,
-        WritableStreamInterface $destination,
+        ReadableStream $source,
+        WritableStream $destination,
         bool $end = true,
         int $length = 0,
-        $byte = null,
+        string $byte = null,
         float $timeout = 0
     ): \Generator {
         if (!$destination->isWritable()) {
@@ -62,35 +65,25 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
 
         $bytes = 0;
 
-        try {
-            do {
-                $data = yield from $source->read($length, $byte, $timeout);
+        do {
+            $data = yield from $source->read($length, $byte, $timeout);
 
-                $count = strlen($data);
-                $bytes += $count;
+            $count = strlen($data);
+            $bytes += $count;
 
+            if ($count) {
                 yield from $destination->write($data, $timeout);
-            } while ($source->isReadable()
-                && $destination->isWritable()
-                && (null === $byte || $data[$count - 1] !== $byte)
-                && (0 === $length || 0 < $length -= $count)
-            );
-        } catch (\Exception $exception) {
-            if ($end) {
-                $source->close();
-                if ($destination->isWritable()) {
-                    yield $destination->end();
-                } else {
-                    $destination->close();
-                }
             }
-            throw $exception;
-        }
+        } while ($source->isReadable()
+            && $destination->isWritable()
+            && (null === $byte || $data[$count - 1] !== $byte)
+            && (0 === $length || 0 < $length -= $count)
+        );
 
         if ($end) {
             $source->close();
             if ($destination->isWritable()) {
-                yield $destination->end();
+                yield from $destination->end();
             } else {
                 $destination->close();
             }
@@ -102,7 +95,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
     /**
      * @coroutine
      *
-     * @param ReadableStreamInterface $stream
+     * @param ReadableStream $stream
      * @param int $length
      * @param float|int $timeout
      *
@@ -110,13 +103,13 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @resolve string
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
+     * @throws \Icicle\Exception\InvalidArgumentError If the length is invalid.
      * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
-     * @throws \Icicle\Stream\Exception\InvalidArgumentError If the length is invalid.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    function readTo(ReadableStreamInterface $stream, int $length, float $timeout = 0): \Generator
+    function readTo(ReadableStream $stream, int $length, float $timeout = 0): \Generator
     {
         if (0 > $length) {
             throw new InvalidArgumentError('The length should be a non-negative integer.');
@@ -139,7 +132,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
     /**
      * @coroutine
      *
-     * @param ReadableStreamInterface $stream
+     * @param ReadableStream $stream
      * @param string $needle
      * @param int $maxlength
      * @param float|int $timeout
@@ -148,18 +141,19 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @resolve string
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
+     * @throws \Icicle\Exception\InvalidArgumentError If the length is invalid.
      * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
-     * @throws \Icicle\Stream\Exception\InvalidArgumentError If the length is invalid or the needle is an empty string.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     function readUntil(
-        ReadableStreamInterface $stream,
+        ReadableStream $stream,
         string $needle,
         int $maxlength = 0,
         float $timeout = 0
     ): \Generator {
+        $maxlength = (int) $maxlength;
         if (0 > $maxlength) {
             throw new InvalidArgumentError('The length should be a non-negative integer.');
         }
@@ -186,7 +180,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
     /**
      * @coroutine
      *
-     * @param ReadableStreamInterface $stream
+     * @param ReadableStream $stream
      * @param int $maxlength
      * @param float|int $timeout
      *
@@ -194,12 +188,12 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @resolve string
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
+     * @throws \Icicle\Exception\InvalidArgumentError If the length is invalid.
      * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
-     * @throws \Icicle\Stream\Exception\InvalidArgumentError If the length is invalid.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
-    function readAll(ReadableStreamInterface $stream, int $maxlength = 0, float $timeout = 0): \Generator
+    function readAll(ReadableStream $stream, int $maxlength = 0, float $timeout = 0): \Generator
     {
         $buffer = '';
 
@@ -239,9 +233,9 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
     /**
      * Returns the readable stream for STDIN.
      *
-     * @return \Icicle\Stream\ReadableStreamInterface
+     * @return \Icicle\Stream\ReadableStream
      */
-    function stdin(): ReadableStreamInterface
+    function stdin(): ReadableStream
     {
         static $pipe;
 
@@ -255,9 +249,9 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
     /**
      * Returns the writable stream for STDOUT.
      *
-     * @return \Icicle\Stream\WritableStreamInterface
+     * @return \Icicle\Stream\WritableStream
      */
-    function stdout(): WritableStreamInterface
+    function stdout(): WritableStream
     {
         static $pipe;
 
@@ -271,9 +265,9 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
     /**
      * Returns the writable stream for STDERR.
      *
-     * @return \Icicle\Stream\WritableStreamInterface
+     * @return \Icicle\Stream\WritableStream
      */
-    function stderr(): WritableStreamInterface
+    function stderr(): WritableStream
     {
         static $pipe;
 

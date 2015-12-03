@@ -9,4 +9,17 @@
 
 namespace Icicle\Stream;
 
-interface DuplexStreamInterface extends ReadableStreamInterface, WritableStreamInterface {}
+interface Stream
+{
+    /**
+     * Determines if the stream is still open.
+     *
+     * @return bool
+     */
+    public function isOpen(): bool;
+    
+    /**
+     * Closes the stream, making it unreadable or unwritable.
+     */
+    public function close();
+}

@@ -9,17 +9,17 @@
 
 namespace Icicle\Stream\Text;
 
-use Icicle\Stream\{StreamInterface, Structures\Buffer, WritableStreamInterface};
+use Icicle\Stream\{Structures\Buffer, WritableStream};
 
 /**
  * Writes text to a stream.
  */
-class TextWriter implements StreamInterface
+class TextWriter
 {
     const DEFAULT_BUFFER_SIZE = 16384;
 
     /**
-     * @var \Icicle\Stream\WritableStreamInterface The stream to write to.
+     * @var \Icicle\Stream\WritableStream The stream to write to.
      */
     private $stream;
 
@@ -46,14 +46,14 @@ class TextWriter implements StreamInterface
     /**
      * Creates a new stream writer for a given stream.
      *
-     * @param \Icicle\Stream\WritableStreamInterface $stream The stream to write to.
+     * @param \Icicle\Stream\WritableStream $stream The stream to write to.
      * @param float|int $timeout The timeout for write operations. Use 0 for no timeout.
      * @param string $encoding
      * @param bool $autoFlush Indicates if the buffer should be flushed on every write.
      * @param int $bufferSize The max buffer size in bytes.
      */
     public function __construct(
-        WritableStreamInterface $stream,
+        WritableStream $stream,
         float $timeout = 0,
         string $encoding = 'UTF-8',
         bool $autoFlush = false,
@@ -70,9 +70,9 @@ class TextWriter implements StreamInterface
     /**
      * Gets the underlying stream.
      *
-     * @return \Icicle\Stream\WritableStreamInterface
+     * @return \Icicle\Stream\WritableStream
      */
-    public function getStream(): WritableStreamInterface
+    public function getStream(): WritableStream
     {
         return $this->stream;
     }
@@ -107,9 +107,9 @@ class TextWriter implements StreamInterface
      *
      * @resolve int Number of bytes written to the stream.
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function flush(): \Generator
     {
@@ -135,9 +135,9 @@ class TextWriter implements StreamInterface
      *
      * @resolve int Number of bytes written to the buffer.
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function write(string $text): \Generator
     {
@@ -165,9 +165,9 @@ class TextWriter implements StreamInterface
      *
      * @resolve int Number of bytes written to the buffer.
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      */
     public function writeLine(string $text): \Generator
     {
@@ -189,9 +189,9 @@ class TextWriter implements StreamInterface
      *
      * @resolve int Number of bytes written to the buffer.
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      *
      * @see http://php.net/printf
      */
@@ -216,15 +216,15 @@ class TextWriter implements StreamInterface
      *
      * @resolve int Number of bytes written to the buffer.
      *
+     * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
-     * @throws \Icicle\Promise\Exception\TimeoutException If the operation times out.
      *
      * @see http://php.net/printf
      */
     public function printLine(string $format, ...$args): \Generator
     {
-        $formatted = call_user_func_array('sprintf', func_get_args());
+        $formatted = sprintf($format, ...$args);
         yield $this->write($formatted . $this->newLine);
     }
 }

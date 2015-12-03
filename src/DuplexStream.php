@@ -7,6 +7,6 @@
  * @license MIT See the LICENSE file that was distributed with this source code for more information.
  */
 
-namespace Icicle\Stream\Exception;
+namespace Icicle\Stream;
 
-class InvalidArgumentError extends Error {}
+interface DuplexStream extends ReadableStream, WritableStream {}

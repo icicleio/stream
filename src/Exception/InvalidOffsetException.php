@@ -9,4 +9,4 @@
 
 namespace Icicle\Stream\Exception;
 
-class InvalidOffsetException extends Exception {}
+class InvalidOffsetException extends \Exception implements Exception {}

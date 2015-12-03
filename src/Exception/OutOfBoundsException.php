@@ -9,4 +9,4 @@
 
 namespace Icicle\Stream\Exception;
 
-class OutOfBoundsException extends Exception {}
+class OutOfBoundsException extends \Exception implements Exception {}

@@ -1,5 +1,13 @@
 # Changelog
 
+### v0.5.0
+
+- Changes
+    - All interface names have been changed to remove the `Interface` suffix. Most interfaces simply had the suffix removed, except for `Icicle\Stream\StreamResourceInterface`, which was renamed to `Icicle\Stream\Resource` and no longer extends `Icicle\Stream\Stream`.
+    - Calling `close()` on a readable stream when there is a pending read operation will now fulfill the read with an empty string instead of rejecting.
+
+---
+
 ### v0.4.3
 
 - New Features
