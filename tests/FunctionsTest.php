@@ -84,7 +84,7 @@ class FunctionsTest extends TestCase
         $this->assertFalse($promise->isPending());
         $this->assertTrue($promise->isFulfilled());
         $this->assertSame(strlen(self::WRITE_STRING) * 3, $promise->wait());
-        $this->assertFalse($readable->isOpen());
+        $this->assertTrue($readable->isOpen());
     }
 
     /**

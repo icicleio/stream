@@ -29,8 +29,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @param \Icicle\Stream\ReadableStream $source
      * @param \Icicle\Stream\WritableStream $destination
-     * @param bool $end If true, calls close() on the source stream and calls end() on the destination stream when
-     *     piping ends, either due to completion or on error.
+     * @param bool $end If true, calls end() on the destination stream when piping ends.
      * @param int $length The number of bytes to pipe. Use 0 for any number of bytes.
      * @param string|null $byte Stop piping when the given byte is read from the source stream. Use null to ignore
      *     this parameter.
@@ -86,7 +85,6 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
         );
 
         if ($end) {
-            $source->close();
             if ($destination->isWritable()) {
                 yield $destination->end();
             } else {
