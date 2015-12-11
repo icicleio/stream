@@ -79,12 +79,8 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
             && (0 === $length || 0 < $length -= $count)
         );
 
-        if ($end) {
-            if ($destination->isWritable()) {
-                yield from $destination->end();
-            } else {
-                $destination->close();
-            }
+        if ($end && $destination->isWritable()) {
+            yield from $destination->end();
         }
 
         return $bytes;
