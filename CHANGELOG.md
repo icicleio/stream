@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.2] - 2015-12-11
+### Fixed
+- Fixed an issue where a stream that ended itself (made itself unwritable) would then be closed when using `Icicle\Stream\pipe()` with the `$end` parameter set to `true`.
+
 ## [0.5.1] - 2015-12-09
 ### Fixed
 - The `Icicle\Stream\pipe()` function also closed the source stream if `$end` was `true`, though this was not the intended behavior. This has now been fixed, only the destination stream is ended (closed).

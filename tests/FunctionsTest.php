@@ -66,6 +66,9 @@ class FunctionsTest extends TestCase
                 return $generator();
             }));
 
+        $mock->expects($this->never())
+            ->method('close');
+
         $promise = new Coroutine(Stream\pipe($readable, $mock));
         new Coroutine($writable->write(self::WRITE_STRING));
 
