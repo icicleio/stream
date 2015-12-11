@@ -85,7 +85,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
         );
 
         if ($end && $destination->isWritable()) {
-            yield $destination->end();
+            yield $destination->end('', $timeout);
         }
 
         yield $bytes;

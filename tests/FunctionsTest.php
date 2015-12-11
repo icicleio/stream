@@ -131,7 +131,7 @@ class FunctionsTest extends TestCase
         };
         $stream->write(self::WRITE_STRING, 0)->willReturn($generator());
 
-        $stream->end()->shouldBeCalled();
+        $stream->end('', 0)->shouldBeCalled();
 
         $promise = new Coroutine(Stream\pipe($readable, $stream->reveal(), true));
 
@@ -528,7 +528,7 @@ class FunctionsTest extends TestCase
         };
         $stream->write(self::WRITE_STRING, 0)->willReturn($generator());
 
-        $stream->end()->shouldBeCalled();
+        $stream->end('', 0)->shouldBeCalled();
 
         $promise = new Coroutine(Stream\pipe($readable, $stream->reveal(), true, 0, '!'));
 
