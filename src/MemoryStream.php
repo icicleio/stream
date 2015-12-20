@@ -200,6 +200,21 @@ class MemoryStream implements DuplexStream
     }
 
     /**
+     * Shifts the given data back to the front of the stream and will be the first bytes returned from any pending or
+     * subsequent read.
+     *
+     * @param string $data
+     */
+    public function unshift($data)
+    {
+        $this->buffer->unshift($data);
+
+        if (null !== $this->delayed && !$this->buffer->isEmpty()) {
+            $this->delayed->resolve($this->remove());
+        }
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function isReadable()

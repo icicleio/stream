@@ -101,6 +101,17 @@ class DuplexPipe implements DuplexStream, Resource
     }
 
     /**
+     * Shifts the given data back to the front of the stream and will be the first bytes returned from any pending or
+     * subsequent read.
+     *
+     * @param string $data
+     */
+    public function unshift($data)
+    {
+        $this->readable->unshift($data);
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function write($data, $timeout = 0)

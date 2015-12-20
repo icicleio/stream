@@ -128,11 +128,11 @@ class ReadablePipe extends StreamResource implements ReadableStream
      * @coroutine
      *
      * Returns a coroutine fulfilled when there is data available to read in the internal stream buffer. Note that
-     * this method does not consider data that may be available in the internal buffer. This method should be used to
+     * this method does not consider data that may be available in the internal buffer. This method can be used to
      * implement functionality that uses the stream socket resource directly.
      *
-     * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
-     *     if no data is received. Use null for no timeout.
+     * @param float|int $timeout Number of seconds until the returned coroutine is rejected with a TimeoutException
+     *     if no data is received. Use 0 for no timeout.
      *
      * @return \Generator
      *
@@ -169,6 +169,28 @@ class ReadablePipe extends StreamResource implements ReadableStream
             throw $exception;
         } finally {
             $this->delayed = null;
+        }
+
+        if ('' !== $this->buffer) {
+            throw new FailureException('Data unshifted to stream buffer while polling.');
+        }
+
+        yield ''; // Resolve with empty string.
+    }
+
+    /**
+     * Shifts the given data back to the front of the stream and will be the first bytes returned from any pending or
+     * subsequent read.
+     *
+     * @param string $data
+     */
+    public function unshift($data)
+    {
+        $this->buffer = $data . $this->buffer;
+
+        if (null !== $this->delayed) {
+            $this->delayed->resolve($this->buffer);
+            $this->poll->cancel();
         }
     }
 

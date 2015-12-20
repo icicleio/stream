@@ -858,6 +858,52 @@ class ReadablePipeTest extends PipeTest
     /**
      * @depends testRead
      */
+    public function testUnshift()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        new Coroutine($writable->write(self::WRITE_STRING));
+
+        $data = '1234567890';
+
+        $readable->unshift($data);
+
+        $promise = new Coroutine($readable->read());
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->identicalTo($data . self::WRITE_STRING));
+
+        $promise->done($callback);
+
+        Loop\run();
+    }
+
+    /**
+     * @depends testUnshift
+     */
+    public function testUnshiftWithPendingRead()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        $promise = new Coroutine($readable->read());
+
+        $data = '1234567890';
+
+        $readable->unshift($data);
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->identicalTo($data));
+
+        $promise->done($callback);
+
+        Loop\run();
+    }
+
+    /**
+     * @depends testRead
+     */
     public function testPoll()
     {
         list($readable, $writable) = $this->createStreams();
