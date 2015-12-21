@@ -103,7 +103,7 @@ class DuplexPipe implements DuplexStream, Resource
      *
      * @param string $data
      */
-    public function unshift($data)
+    public function unshift(string $data)
     {
         $this->readable->unshift($data);
     }
