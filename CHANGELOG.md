@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.3] - 2015-12-20
+### Added
+- Added an `unshift()` method to `Icicle\Stream\MemoryStream`, `Icicle\Stream\Pipe\ReadablePipe`, and `Icicle\Stream\Pipe\DuplexPipe` that puts data at the front of the stream. The data given to this method will be the first data read for any pending or subsequent read.
+
+### Changed
+- Simultaneous reads are now allowed on readable streams, fulfilling in the order they were created. Simultaneous reads will not fulfill with the same data, rather each is fulfilled independently with new data read from the stream.
+
 ## [0.5.2] - 2015-12-11
 ### Fixed
 - Fixed an issue where a stream that ended itself (made itself unwritable) would then be closed when using `Icicle\Stream\pipe()` with the `$end` parameter set to `true`.
