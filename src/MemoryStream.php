@@ -11,12 +11,7 @@ namespace Icicle\Stream;
 
 use Icicle\Awaitable\Delayed;
 use Icicle\Exception\InvalidArgumentError;
-use Icicle\Stream\Exception\{
-    BusyError,
-    ClosedException,
-    UnreadableException,
-    UnwritableException
-};
+use Icicle\Stream\Exception\{ClosedException, UnreadableException, UnwritableException};
 
 /**
  * Serves as buffer that implements the stream interface, allowing consumers to be notified when data is available in
@@ -129,8 +124,8 @@ class MemoryStream implements DuplexStream
      */
     public function read(int $length = 0, string $byte = null, float $timeout = 0): \Generator
     {
-        if (null !== $this->delayed) {
-            throw new BusyError('Already waiting to read from stream.');
+        while (null !== $this->delayed) {
+            yield $this->delayed;
         }
 
         if (!$this->isReadable()) {
@@ -196,6 +191,21 @@ class MemoryStream implements DuplexStream
         }
 
         return $this->buffer->shift($this->length);
+    }
+
+    /**
+     * Shifts the given data back to the front of the stream and will be the first bytes returned from any pending or
+     * subsequent read.
+     *
+     * @param string $data
+     */
+    public function unshift(string $data)
+    {
+        $this->buffer->unshift($data);
+
+        if (null !== $this->delayed && !$this->buffer->isEmpty()) {
+            $this->delayed->resolve($this->remove());
+        }
     }
 
     /**

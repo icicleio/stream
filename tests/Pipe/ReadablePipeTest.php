@@ -16,8 +16,6 @@ use Icicle\Exception\InvalidArgumentError;
 use Icicle\Loop;
 use Icicle\Loop\Loop as LoopInterface;
 use Icicle\Loop\Watcher\Io;
-use Icicle\Stream\Exception\BusyError;
-use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\FailureException;
 use Icicle\Stream\Exception\UnreadableException;
 use Icicle\Stream\Pipe\ReadablePipe;
@@ -141,11 +139,43 @@ class ReadablePipeTest extends PipeTest
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
-            ->with($this->isInstanceof(BusyError::class));
+            ->with($this->identicalTo(self::WRITE_STRING));
+
+        $promise2->done($callback);
+
+        Loop\timer(self::TIMEOUT, function () use ($writable) {
+            new Coroutine($writable->write(self::WRITE_STRING));
+        });
+
+        new Coroutine($writable->write(self::WRITE_STRING));
+
+        Loop\run();
+    }
+
+    /**
+     * @depends testSimultaneousRead
+     */
+    public function testSimultaneousReadThenClose()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        $promise1 = new Coroutine($readable->read());
+
+        $promise2 = new Coroutine($readable->read());
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->identicalTo(''));
+
+        $promise1->done($callback);
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->isInstanceOf(UnreadableException::class));
 
         $promise2->done($this->createCallback(0), $callback);
 
-        new Coroutine($writable->write(self::WRITE_STRING));
+        $readable->close();
 
         Loop\run();
     }
@@ -452,11 +482,43 @@ class ReadablePipeTest extends PipeTest
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
-            ->with($this->isInstanceof(BusyError::class));
+            ->with($this->identicalTo("123\0"));
+
+        $promise2->done($callback);
+
+        Loop\timer(self::TIMEOUT, function () use ($writable) {
+            new Coroutine($writable->write("123\0" . "4567890"));
+        });
+
+        new Coroutine($writable->write(self::WRITE_STRING));
+
+        Loop\run();
+    }
+
+    /**
+     * @depends testSimultaneousReadTo
+     */
+    public function testSimultaneousReadToThenClose()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        $promise1 = new Coroutine($readable->read(0, "\0"));
+
+        $promise2 = new Coroutine($readable->read(0, "\0"));
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->identicalTo(''));
+
+        $promise1->done($callback);
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->isInstanceOf(UnreadableException::class));
 
         $promise2->done($this->createCallback(0), $callback);
 
-        new Coroutine($writable->write(self::WRITE_STRING));
+        $readable->close();
 
         Loop\run();
     }
@@ -858,6 +920,52 @@ class ReadablePipeTest extends PipeTest
     /**
      * @depends testRead
      */
+    public function testUnshift()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        new Coroutine($writable->write(self::WRITE_STRING));
+
+        $data = '1234567890';
+
+        $readable->unshift($data);
+
+        $promise = new Coroutine($readable->read());
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->identicalTo($data . self::WRITE_STRING));
+
+        $promise->done($callback);
+
+        Loop\run();
+    }
+
+    /**
+     * @depends testUnshift
+     */
+    public function testUnshiftWithPendingRead()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        $promise = new Coroutine($readable->read());
+
+        $data = '1234567890';
+
+        $readable->unshift($data);
+
+        $callback = $this->createCallback(1);
+        $callback->method('__invoke')
+            ->with($this->identicalTo($data));
+
+        $promise->done($callback);
+
+        Loop\run();
+    }
+
+    /**
+     * @depends testRead
+     */
     public function testPoll()
     {
         list($readable, $writable) = $this->createStreams();
@@ -938,11 +1046,15 @@ class ReadablePipeTest extends PipeTest
 
         $callback = $this->createCallback(1);
         $callback->method('__invoke')
-            ->with($this->isInstanceOf(BusyError::class));
+            ->with($this->identicalTo(''));
 
-        $promise2->done($this->createCallback(0), $callback);
+        $promise2->done($callback);
 
-        $promise1->cancel();
+        Loop\timer(self::TIMEOUT, function () use ($writable) {
+            new Coroutine($writable->write(self::WRITE_STRING));
+        });
+
+        new Coroutine($writable->write(self::WRITE_STRING));
 
         Loop\run();
     }

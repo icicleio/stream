@@ -13,7 +13,7 @@ use Icicle\Awaitable\{Delayed, Exception\TimeoutException};
 use Icicle\Exception\InvalidArgumentError;
 use Icicle\Loop;
 use Icicle\Loop\Watcher\Io;
-use Icicle\Stream\Exception\{BusyError, FailureException, UnreadableException};
+use Icicle\Stream\Exception\{FailureException, UnreadableException};
 use Icicle\Stream\{ReadableStream, StreamResource};
 use Throwable;
 
@@ -76,8 +76,8 @@ class ReadablePipe extends StreamResource implements ReadableStream
      */
     public function read(int $length = 0, string $byte = null, float $timeout = 0): \Generator
     {
-        if (null !== $this->delayed) {
-            throw new BusyError('Already waiting on stream.');
+        while (null !== $this->delayed) {
+            yield $this->delayed; // Wait for previous read to complete.
         }
 
         if (!$this->isReadable()) {
@@ -123,26 +123,25 @@ class ReadablePipe extends StreamResource implements ReadableStream
      * @coroutine
      *
      * Returns a coroutine fulfilled when there is data available to read in the internal stream buffer. Note that
-     * this method does not consider data that may be available in the internal buffer. This method should be used to
+     * this method does not consider data that may be available in the internal buffer. This method can be used to
      * implement functionality that uses the stream socket resource directly.
      *
-     * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
-     *     if no data is received. Use null for no timeout.
+     * @param float|int $timeout Number of seconds until the returned coroutine is rejected with a TimeoutException
+     *     if no data is received. Use 0 for no timeout.
      *
      * @return \Generator
      *
      * @resolve string Empty string.
      *
      * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\FailureException If the stream buffer is not empty.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream has been closed.
      */
     public function poll(float $timeout = 0): \Generator
     {
-        if (null !== $this->delayed) {
-            throw new BusyError('Already waiting on stream.');
+        while (null !== $this->delayed) {
+            yield $this->delayed; // Wait for previous read to complete.
         }
 
         if (!$this->isReadable()) {
@@ -166,7 +165,27 @@ class ReadablePipe extends StreamResource implements ReadableStream
             $this->delayed = null;
         }
 
-        return '';
+        if ('' !== $this->buffer) {
+            throw new FailureException('Data unshifted to stream buffer while polling.');
+        }
+
+        return ''; // Resolve with empty string.
+    }
+
+    /**
+     * Shifts the given data back to the front of the stream and will be the first bytes returned from any pending or
+     * subsequent read.
+     *
+     * @param string $data
+     */
+    public function unshift(string $data)
+    {
+        $this->buffer = $data . $this->buffer;
+
+        if (null !== $this->delayed) {
+            $this->delayed->resolve($this->buffer);
+            $this->poll->cancel();
+        }
     }
 
     /**

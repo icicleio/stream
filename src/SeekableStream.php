@@ -30,7 +30,6 @@ interface SeekableStream extends Stream
      * @throws \Icicle\Stream\Exception\InvalidOffsetException If the new offset would be outside the stream.
      * @throws \Icicle\Stream\Exception\UnseekableException If the stream is no longer seekable (due to being closed or
      *     for another reason).
-     * @throws \Icicle\Stream\Exception\BusyError If the stream was already waiting on a read or seek operation.
      */
     public function seek(int $offset, int $whence = SEEK_SET, float $timeout = 0): \Generator;
 

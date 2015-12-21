@@ -39,7 +39,6 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Exception\InvalidArgumentError If the length is invalid.
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
@@ -80,7 +79,7 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
         );
 
         if ($end && $destination->isWritable()) {
-            yield from $destination->end();
+            yield from $destination->end('', $timeout);
         }
 
         return $bytes;
@@ -99,7 +98,6 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Exception\InvalidArgumentError If the length is invalid.
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      */
@@ -137,7 +135,6 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Exception\InvalidArgumentError If the length is invalid.
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      */
@@ -184,7 +181,6 @@ if (!function_exists(__NAMESPACE__ . '\pipe')) {
      *
      * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Exception\InvalidArgumentError If the length is invalid.
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      */
     function readAll(ReadableStream $stream, int $maxlength = 0, float $timeout = 0): \Generator
