@@ -14,7 +14,6 @@ use Icicle\Awaitable\Delayed;
 use Icicle\Awaitable\Exception\TimeoutException;
 use Icicle\Exception\InvalidArgumentError;
 use Icicle\Loop;
-use Icicle\Stream\Exception\BusyError;
 use Icicle\Stream\Exception\FailureException;
 use Icicle\Stream\Exception\UnreadableException;
 use Icicle\Stream\ReadableStream;
@@ -79,8 +78,8 @@ class ReadablePipe extends StreamResource implements ReadableStream
      */
     public function read($length = 0, $byte = null, $timeout = 0)
     {
-        if (null !== $this->delayed) {
-            throw new BusyError('Already waiting on stream.');
+        while (null !== $this->delayed) {
+            yield $this->delayed; // Wait for previous read to complete.
         }
 
         if (!$this->isReadable()) {
@@ -139,15 +138,14 @@ class ReadablePipe extends StreamResource implements ReadableStream
      * @resolve string Empty string.
      *
      * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\FailureException If the stream buffer is not empty.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream has been closed.
      */
     public function poll($timeout = 0)
     {
-        if (null !== $this->delayed) {
-            throw new BusyError('Already waiting on stream.');
+        while (null !== $this->delayed) {
+            yield $this->delayed; // Wait for previous read to complete.
         }
 
         if (!$this->isReadable()) {

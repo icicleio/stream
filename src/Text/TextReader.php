@@ -108,7 +108,6 @@ class TextReader
      * @resolve string String of characters read from the stream.
      *
      * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      */
@@ -136,7 +135,6 @@ class TextReader
      * @resolve string String of characters read from the stream.
      *
      * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      */
@@ -162,7 +160,6 @@ class TextReader
      * @resolve string A line of text read from the stream.
      *
      * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      */
@@ -202,7 +199,6 @@ class TextReader
      * @resolve string The contents of the stream.
      *
      * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      */
@@ -228,7 +224,6 @@ class TextReader
      * @resolve array An array of parsed values.
      *
      * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream is unexpectedly closed.
      *

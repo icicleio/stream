@@ -28,7 +28,6 @@ interface ReadableStream extends Stream
      *
      * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
      * @throws \Icicle\Exception\InvalidArgumentError If the length is invalid.
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      */
     public function read($length = 0, $byte = null, $timeout = 0);

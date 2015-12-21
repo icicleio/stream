@@ -82,7 +82,6 @@ class DuplexPipe implements DuplexStream, Resource
      * @resolve string Empty string.
      *
      * @throws \Icicle\Awaitable\Exception\TimeoutException If the operation times out.
-     * @throws \Icicle\Stream\Exception\BusyError If a read was already pending on the stream.
      * @throws \Icicle\Stream\Exception\FailureException If the stream buffer is not empty.
      * @throws \Icicle\Stream\Exception\UnreadableException If the stream is no longer readable.
      * @throws \Icicle\Stream\Exception\ClosedException If the stream has been closed.

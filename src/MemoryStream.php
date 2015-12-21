@@ -12,7 +12,6 @@ namespace Icicle\Stream;
 use Exception;
 use Icicle\Awaitable\Delayed;
 use Icicle\Exception\InvalidArgumentError;
-use Icicle\Stream\Exception\BusyError;
 use Icicle\Stream\Exception\ClosedException;
 use Icicle\Stream\Exception\UnreadableException;
 use Icicle\Stream\Exception\UnwritableException;
@@ -128,8 +127,8 @@ class MemoryStream implements DuplexStream
      */
     public function read($length = 0, $byte = null, $timeout = 0)
     {
-        if (null !== $this->delayed) {
-            throw new BusyError('Already waiting to read from stream.');
+        while (null !== $this->delayed) {
+            yield $this->delayed;
         }
 
         if (!$this->isReadable()) {
