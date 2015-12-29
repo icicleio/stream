@@ -21,19 +21,33 @@ abstract class StreamResource implements Resource
     private $resource;
 
     /**
+     * @var bool
+     */
+    private $autoClose = true;
+
+    /**
      * @param resource $resource PHP stream resource.
+     * @param bool $autoClose True to close the resource on destruct, false to leave it open.
      *
      * @throws \Icicle\Exception\InvalidArgumentError If a non-resource is given.
      */
-    public function __construct($resource)
+    public function __construct($resource, bool $autoClose = true)
     {
         if (!is_resource($resource) || get_resource_type($resource) !== 'stream') {
             throw new InvalidArgumentError('Invalid resource given to constructor!');
         }
 
         $this->resource = $resource;
+        $this->autoClose = $autoClose;
 
         stream_set_blocking($this->resource, 0);
+    }
+
+    public function __destruct()
+    {
+        if ($this->autoClose && is_resource($this->resource)) {
+            fclose($this->resource);
+        }
     }
 
     /**
@@ -56,6 +70,7 @@ abstract class StreamResource implements Resource
         }
 
         $this->resource = null;
+        $this->autoClose = false;
     }
 
     /**

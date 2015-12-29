@@ -38,16 +38,25 @@ class WritablePipe extends StreamResource implements WritableStream
 
     /**
      * @param resource $resource Stream resource.
+     * @param bool $autoClose True to close the resource on destruct, false to leave it open.
      */
-    public function __construct($resource)
+    public function __construct($resource, bool $autoClose = true)
     {
-        parent::__construct($resource);
+        parent::__construct($resource, $autoClose);
 
         stream_set_write_buffer($resource, 0);
         stream_set_chunk_size($resource, self::CHUNK_SIZE);
 
         $this->writeQueue = new \SplQueue();
-        $this->await = $this->createAwait();
+    }
+
+    /**
+     * Frees resources associated with this object from the loop.
+     */
+    public function __destruct()
+    {
+        parent::__destruct();
+        $this->free();
     }
 
     /**
@@ -55,6 +64,7 @@ class WritablePipe extends StreamResource implements WritableStream
      */
     public function close()
     {
+        parent::close();
         $this->free();
     }
 
@@ -65,11 +75,11 @@ class WritablePipe extends StreamResource implements WritableStream
      */
     private function free(Throwable $exception = null)
     {
-        parent::close();
-
         $this->writable = false;
 
-        $this->await->free();
+        if (null !== $this->await) {
+            $this->await->free();
+        }
 
         while (!$this->writeQueue->isEmpty()) {
             /** @var \Icicle\Awaitable\Delayed $delayed */
@@ -98,7 +108,7 @@ class WritablePipe extends StreamResource implements WritableStream
      * @return \Generator
      *
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
-     * @throws \Icicle\Stream\Exception\ClosedException If the stream has been closed.
+     * @throws \Icicle\Stream\Exception\FailureException If writing to the stream fails.
      */
     private function send(string $data, float $timeout = 0, bool $end = false): \Generator
     {
@@ -119,7 +129,16 @@ class WritablePipe extends StreamResource implements WritableStream
                     return $written;
                 }
 
-                $written = $this->push($this->getResource(), $data, false);
+                // Error reporting suppressed since fwrite() emits E_WARNING if the pipe is broken or the buffer is full.
+                $written = @fwrite($this->getResource(), $data, self::CHUNK_SIZE);
+
+                if (false === $written) {
+                    $message = 'Failed to write to stream.';
+                    if ($error = error_get_last()) {
+                        $message .= sprintf(' Errno: %d; %s', $error['type'], $error['message']);
+                    }
+                    throw new FailureException($message);
+                }
 
                 if ($length <= $written) {
                     return $written;
@@ -131,7 +150,10 @@ class WritablePipe extends StreamResource implements WritableStream
             $delayed = new Delayed();
             $this->writeQueue->push([$data, $written, $timeout, $delayed]);
 
-            if (!$this->await->isPending()) {
+            if (null === $this->await) {
+                $this->await = $this->createAwait($this->getResource(), $this->writeQueue);
+                $this->await->listen($timeout);
+            } elseif (!$this->await->isPending()) {
                 $this->await->listen($timeout);
             }
 
@@ -180,7 +202,10 @@ class WritablePipe extends StreamResource implements WritableStream
         $delayed = new Delayed();
         $this->writeQueue->push(['', 0, $timeout, $delayed]);
 
-        if (!$this->await->isPending()) {
+        if (null === $this->await) {
+            $this->await = $this->createAwait($this->getResource(), $this->writeQueue);
+            $this->await->listen($timeout);
+        } elseif (!$this->await->isPending()) {
             $this->await->listen($timeout);
         }
 
@@ -209,64 +234,49 @@ class WritablePipe extends StreamResource implements WritableStream
      */
     public function rebind(float $timeout = 0)
     {
-        $pending = $this->await->isPending();
-        $this->await->free();
+        if (null !== $this->await) {
+            $pending = $this->await->isPending();
+            $this->await->free();
 
-        $this->await = $this->createAwait();
+            $this->await = $this->createAwait($this->getResource(), $this->writeQueue);
 
-        if ($pending) {
-            $this->await->listen($timeout);
+            if ($pending) {
+                $this->await->listen($timeout);
+            }
         }
     }
 
     /**
      * @param resource $resource
-     * @param string $data
-     * @param bool $strict If true, fail if no bytes are written.
+     * @param \SplQueue $writeQueue
      *
-     * @return int Number of bytes written.
-     *
-     * @throws FailureException If writing fails.
-     */
-    private function push($resource, string $data, bool $strict = false): int
-    {
-        // Error reporting suppressed since fwrite() emits E_WARNING if the pipe is broken or the buffer is full.
-        $written = @fwrite($resource, $data, self::CHUNK_SIZE);
-
-        if (false === $written || (0 === $written && $strict)) {
-            $message = 'Failed to write to stream.';
-            if ($error = error_get_last()) {
-                $message .= sprintf(' Errno: %d; %s', $error['type'], $error['message']);
-            }
-            throw new FailureException($message);
-        }
-
-        return $written;
-    }
-
-    /**
      * @return \Icicle\Loop\Watcher\Io
      */
-    private function createAwait(): Io
+    private function createAwait($resource, \SplQueue $writeQueue): Io
     {
-        return Loop\await($this->getResource(), function ($resource, $expired) {
+        return Loop\await($resource, static function ($resource, bool $expired, Io $await) use ($writeQueue) {
+            /** @var \Icicle\Awaitable\Delayed $delayed */
+            list($data, $previous, $timeout, $delayed) = $writeQueue->shift();
+
             if ($expired) {
-                $this->free(new TimeoutException('Writing to the socket timed out.'));
+                $delayed->reject(new TimeoutException('Writing to the socket timed out.'));
                 return;
             }
-
-            /** @var \Icicle\Awaitable\Delayed $delayed */
-            list($data, $previous, $timeout, $delayed) = $this->writeQueue->shift();
 
             $length = strlen($data);
 
             if (0 === $length) {
                 $delayed->resolve($previous);
             } else {
-                try {
-                    $written = $this->push($resource, $data, true);
-                } catch (Throwable $exception) {
-                    $delayed->reject($exception);
+                // Error reporting suppressed since fwrite() emits E_WARNING if the pipe is broken or the buffer is full.
+                $written = @fwrite($resource, $data, self::CHUNK_SIZE);
+
+                if (false === $written || 0 === $written) {
+                    $message = 'Failed to write to stream.';
+                    if ($error = error_get_last()) {
+                        $message .= sprintf(' Errno: %d; %s', $error['type'], $error['message']);
+                    }
+                    $delayed->reject(new FailureException($message));
                     return;
                 }
 
@@ -275,13 +285,13 @@ class WritablePipe extends StreamResource implements WritableStream
                 } else {
                     $data = substr($data, $written);
                     $written += $previous;
-                    $this->writeQueue->unshift([$data, $written, $timeout, $delayed]);
+                    $writeQueue->unshift([$data, $written, $timeout, $delayed]);
                 }
             }
 
-            if (!$this->writeQueue->isEmpty()) {
-                list( , , $timeout) = $this->writeQueue->top();
-                $this->await->listen($timeout);
+            if (!$writeQueue->isEmpty()) {
+                list( , , $timeout) = $writeQueue->top();
+                $await->listen($timeout);
             }
         });
     }

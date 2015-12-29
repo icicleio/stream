@@ -30,33 +30,12 @@ class DuplexPipeReadTest extends ReadablePipeTest
     {
         list($readable, $writable) = $this->createStreams();
 
-        $io = $this->getMockBuilder(Io::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $loop = $this->getMock(LoopInterface::class);
-
-        $loop->expects($this->once())
-            ->method('poll')
-            ->will($this->returnValue($io));
-
-        $loop->expects($this->once())
-            ->method('await')
-            ->will($this->returnValue($io));
-
-        Loop\loop($loop);
-
-        $readable->rebind();
-    }
-
-    /**
-     * @depends testRebind
-     */
-    public function testRebindAfterRead()
-    {
-        list($readable, $writable) = $this->createStreams();
-
         $promise = new Coroutine($readable->read());
+
+        do { // Write until a pending promise is returned.
+            $promise = new Coroutine($readable->write(self::WRITE_STRING));
+            Loop\tick(false);
+        } while (!$promise->isPending());
 
         $timeout = 1;
 
@@ -64,7 +43,7 @@ class DuplexPipeReadTest extends ReadablePipeTest
             ->disableOriginalConstructor()
             ->getMock();
 
-        $io->expects($this->once())
+        $io->expects($this->exactly(2))
             ->method('listen')
             ->with($timeout);
 
