@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.4] - 2015-12-29
+### Added
+- `Icicle\Stream\Pipe\ReadablePipe`, `Icicle\Stream\Pipe\WritablePipe`, and `Icicle\Stream\Pipe\DuplexPipe` will automatically free resources in the event loop associated with the stream and call `fclose()` on the stream resource when the object is destructed. This means `close()` does not need to be called on the stream to avoid memory leaks in the loop or close the stream resource. The constructors of these classes have an additional boolean parameter `$autoClose` that defaults to `true`, but can be set to `false` to avoid automatically calling `fclose()` on the stream resource.
+
+### Fixed
+- Fixed an issue where only the timeout of the last write would be used if there was a queue of pending writes in `Icicle\Stream\Pipe\WritablePipe`.
+
 ## [0.5.3] - 2015-12-20
 ### Added
 - Added an `unshift()` method to `Icicle\Stream\MemoryStream`, `Icicle\Stream\Pipe\ReadablePipe`, and `Icicle\Stream\Pipe\DuplexPipe` that puts data at the front of the stream. The data given to this method will be the first data read for any pending or subsequent read.
@@ -65,3 +72,19 @@
 
 ## [0.1.0] - 2015-07-02
 - Initial release after split from the main [Icicle repository](https://github.com/icicleio/icicle).
+
+
+[0.5.4]: https://github.com/icicleio/socket/releases/tag/v0.5.4
+[0.5.3]: https://github.com/icicleio/socket/releases/tag/v0.5.3
+[0.5.2]: https://github.com/icicleio/socket/releases/tag/v0.5.2
+[0.5.1]: https://github.com/icicleio/socket/releases/tag/v0.5.1
+[0.5.0]: https://github.com/icicleio/socket/releases/tag/v0.5.0
+[0.4.3]: https://github.com/icicleio/socket/releases/tag/v0.4.3
+[0.4.2]: https://github.com/icicleio/socket/releases/tag/v0.4.2
+[0.4.1]: https://github.com/icicleio/socket/releases/tag/v0.4.1
+[0.4.0]: https://github.com/icicleio/socket/releases/tag/v0.4.0
+[0.3.0]: https://github.com/icicleio/socket/releases/tag/v0.3.0
+[0.2.1]: https://github.com/icicleio/socket/releases/tag/v0.2.1
+[0.2.0]: https://github.com/icicleio/socket/releases/tag/v0.2.0
+[0.1.1]: https://github.com/icicleio/socket/releases/tag/v0.1.1
+[0.1.0]: https://github.com/icicleio/socket/releases/tag/v0.1.0
