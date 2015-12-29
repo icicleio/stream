@@ -9,6 +9,10 @@
 
 namespace Icicle\Tests\Stream\Pipe;
 
+use Icicle\Coroutine\Coroutine;
+use Icicle\Loop;
+use Icicle\Loop\Loop as LoopInterface;
+use Icicle\Loop\Watcher\Io;
 use Icicle\Stream\Pipe\DuplexPipe;
 
 class DuplexPipeReadTest extends ReadablePipeTest
@@ -21,5 +25,39 @@ class DuplexPipeReadTest extends ReadablePipeTest
         $writable = new DuplexPipe($write);
 
         return [$readable, $writable];
+    }
+
+    public function testRebind()
+    {
+        list($readable, $writable) = $this->createStreams();
+
+        $promise = new Coroutine($readable->read());
+
+        do { // Write until a pending promise is returned.
+            $promise = new Coroutine($readable->write(self::WRITE_STRING));
+            Loop\tick(false);
+        } while (!$promise->isPending());
+
+        $timeout = 1;
+
+        $io = $this->getMockBuilder(Io::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $io->expects($this->exactly(2))
+            ->method('listen')
+            ->with($timeout);
+
+        $loop = $this->getMock(LoopInterface::class);
+        $loop->expects($this->once())
+            ->method('poll')
+            ->will($this->returnValue($io));
+        $loop->expects($this->once())
+            ->method('await')
+            ->will($this->returnValue($io));
+
+        Loop\loop($loop);
+
+        $readable->rebind($timeout);
     }
 }

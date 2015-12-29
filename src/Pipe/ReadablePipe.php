@@ -22,9 +22,16 @@ use Icicle\Stream\StreamResource;
 class ReadablePipe extends StreamResource implements ReadableStream
 {
     /**
-     * @var \Icicle\Awaitable\Delayed|null
+     * Queue to hold \Icicle\Awaitable\Delayed objects.
+     *
+     * @var \SplQueue
      */
-    private $delayed;
+    private $queue;
+
+    /**
+     * @var bool
+     */
+    private $readable = true;
 
     /**
      * @var \Icicle\Loop\Watcher\Io
@@ -38,15 +45,26 @@ class ReadablePipe extends StreamResource implements ReadableStream
 
     /**
      * @param resource $resource Stream resource.
+     * @param bool $autoClose True to close the resource on destruct, false to leave it open.
      */
-    public function __construct($resource)
+    public function __construct($resource, $autoClose = true)
     {
-        parent::__construct($resource);
+        parent::__construct($resource, $autoClose);
 
         stream_set_read_buffer($resource, 0);
         stream_set_chunk_size($resource, self::CHUNK_SIZE);
 
-        $this->poll = $this->createPoll();
+        $this->queue = new \SplQueue();
+        $this->poll = $this->createPoll($resource, $this->queue);
+    }
+
+    /**
+     * Frees resources associated with this object from the loop.
+     */
+    public function __destruct()
+    {
+        parent::__destruct();
+        $this->free();
     }
 
     /**
@@ -54,22 +72,23 @@ class ReadablePipe extends StreamResource implements ReadableStream
      */
     public function close()
     {
+        parent::close();
         $this->free();
     }
 
     /**
      * Frees all resources used by the writable stream.
-     *
-     * @param \Exception|null $exception
      */
-    private function free(Exception $exception = null)
+    private function free()
     {
-        parent::close();
+        $this->readable = false;
 
         $this->poll->free();
 
-        if (null !== $this->delayed) {
-            $this->delayed->resolve('');
+        while (!$this->queue->isEmpty()) {
+            /** @var \Icicle\Awaitable\Delayed $delayed */
+            $delayed = $this->queue->shift();
+            $delayed->resolve();
         }
     }
 
@@ -78,8 +97,10 @@ class ReadablePipe extends StreamResource implements ReadableStream
      */
     public function read($length = 0, $byte = null, $timeout = 0)
     {
-        while (null !== $this->delayed) {
-            yield $this->delayed; // Wait for previous read to complete.
+        while (!$this->queue->isEmpty()) {
+            /** @var \Icicle\Awaitable\Delayed $delayed */
+            $delayed = $this->queue->bottom();
+            yield $delayed; // Wait for previous read to complete.
         }
 
         if (!$this->isReadable()) {
@@ -102,21 +123,21 @@ class ReadablePipe extends StreamResource implements ReadableStream
 
         while ('' === ($data = $this->fetch($resource, $length, $byte))) {
             if ($this->eof($resource)) { // Close only if no data was read and at EOF.
-                $this->close();
+                $this->free();
                 break; // Resolve with empty string on EOF.
             }
 
+            $this->queue->push($delayed = new Delayed());
             $this->poll->listen($timeout);
 
-            $this->delayed = new Delayed();
-
             try {
-                yield $this->delayed;
+                yield $delayed;
             } catch (\Exception $exception) {
-                $this->poll->cancel();
+                if ($this->poll->isPending()) {
+                    $this->poll->cancel();
+                    $this->queue->shift();
+                }
                 throw $exception;
-            } finally {
-                $this->delayed = null;
             }
         }
 
@@ -144,8 +165,10 @@ class ReadablePipe extends StreamResource implements ReadableStream
      */
     public function poll($timeout = 0)
     {
-        while (null !== $this->delayed) {
-            yield $this->delayed; // Wait for previous read to complete.
+        while (!$this->queue->isEmpty()) {
+            /** @var \Icicle\Awaitable\Delayed $delayed */
+            $delayed = $this->queue->bottom();
+            yield $delayed; // Wait for previous read to complete.
         }
 
         if (!$this->isReadable()) {
@@ -156,17 +179,17 @@ class ReadablePipe extends StreamResource implements ReadableStream
             throw new FailureException('Stream buffer is not empty. Perform another read before polling.');
         }
 
+        $this->queue->push($delayed = new Delayed());
         $this->poll->listen($timeout);
 
-        $this->delayed = new Delayed();
-
         try {
-            yield $this->delayed;
+            yield $delayed;
         } catch (\Exception $exception) {
-            $this->poll->cancel();
+            if ($this->poll->isPending()) {
+                $this->poll->cancel();
+                $this->queue->shift();
+            }
             throw $exception;
-        } finally {
-            $this->delayed = null;
         }
 
         if ('' !== $this->buffer) {
@@ -186,8 +209,10 @@ class ReadablePipe extends StreamResource implements ReadableStream
     {
         $this->buffer = $data . $this->buffer;
 
-        if (null !== $this->delayed) {
-            $this->delayed->resolve($this->buffer);
+        if (!$this->queue->isEmpty()) {
+            /** @var \Icicle\Awaitable\Delayed $delayed */
+            $delayed = $this->queue->shift();
+            $delayed->resolve();
             $this->poll->cancel();
         }
     }
@@ -197,7 +222,7 @@ class ReadablePipe extends StreamResource implements ReadableStream
      */
     public function isReadable()
     {
-        return $this->isOpen();
+        return $this->readable;
     }
 
     /**
@@ -210,7 +235,7 @@ class ReadablePipe extends StreamResource implements ReadableStream
         $pending = $this->poll->isPending();
         $this->poll->free();
 
-        $this->poll = $this->createPoll();
+        $this->poll = $this->createPoll($this->getResource(), $this->queue);
 
         if ($pending) {
             $this->poll->listen($timeout);
@@ -262,17 +287,23 @@ class ReadablePipe extends StreamResource implements ReadableStream
     }
 
     /**
+     * @param resource $resource
+     * @param \SplQueue $queue
+     *
      * @return \Icicle\Loop\Watcher\Io
      */
-    private function createPoll()
+    private function createPoll($resource, \SplQueue $queue)
     {
-        return Loop\poll($this->getResource(), function ($resource, $expired) {
+        return Loop\poll($resource, static function ($resource, $expired) use ($queue) {
+            /** @var \Icicle\Awaitable\Delayed $delayed */
+            $delayed = $queue->shift();
+
             if ($expired) {
-                $this->delayed->reject(new TimeoutException('The connection timed out.'));
+                $delayed->reject(new TimeoutException('The connection timed out.'));
                 return;
             }
 
-            $this->delayed->resolve($this->buffer);
+            $delayed->resolve();
         });
     }
 }

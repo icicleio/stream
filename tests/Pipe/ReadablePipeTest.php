@@ -1123,23 +1123,6 @@ class ReadablePipeTest extends PipeTest
     {
         list($readable, $writable) = $this->createStreams();
 
-        $loop = $this->getMock(LoopInterface::class);
-
-        $loop->expects($this->once())
-            ->method('poll');
-
-        Loop\loop($loop);
-
-        $readable->rebind();
-    }
-
-    /**
-     * @depends testRebind
-     */
-    public function testRebindAfterRead()
-    {
-        list($readable, $writable) = $this->createStreams();
-
         $promise = new Coroutine($readable->read());
 
         $timeout = 1;

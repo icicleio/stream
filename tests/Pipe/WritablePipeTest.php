@@ -421,23 +421,6 @@ class WritablePipeTest extends PipeTest
     {
         list($readable, $writable) = $this->createStreams();
 
-        $loop = $this->getMock(LoopInterface::class);
-
-        $loop->expects($this->once())
-            ->method('await');
-
-        Loop\loop($loop);
-
-        $writable->rebind();
-    }
-
-    /**
-     * @depends testRebind
-     */
-    public function testRebindAfterPendingWrite()
-    {
-        list($readable, $writable) = $this->createStreams();
-
         do { // Write until a pending promise is returned.
             $promise = new Coroutine($writable->write(self::WRITE_STRING));
             Loop\tick(false);

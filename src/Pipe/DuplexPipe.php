@@ -27,11 +27,12 @@ class DuplexPipe implements DuplexStream, Resource
 
     /**
      * @param resource $resource Stream socket resource.
+     * @param bool $autoClose True to close the resource on destruct, false to leave it open.
      */
-    public function __construct($resource)
+    public function __construct($resource, $autoClose = true)
     {
-        $this->readable = new ReadablePipe($resource);
-        $this->writable = new WritablePipe($resource);
+        $this->readable = new ReadablePipe($resource, $autoClose);
+        $this->writable = new WritablePipe($resource, $autoClose);
     }
 
     /**
