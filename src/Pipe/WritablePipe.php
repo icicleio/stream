@@ -166,9 +166,7 @@ class WritablePipe extends StreamResource implements WritableStream
 
             yield $delayed;
         } catch (Exception $exception) {
-            if ($this->isOpen()) {
-                $this->free($exception);
-            }
+            $this->free($exception);
             throw $exception;
         } finally {
             if ($end && $this->isOpen()) {
@@ -219,9 +217,7 @@ class WritablePipe extends StreamResource implements WritableStream
         try {
             yield $delayed;
         } catch (Exception $exception) {
-            if ($this->isOpen()) {
-                $this->free($exception);
-            }
+            $this->free($exception);
             throw $exception;
         }
     }
@@ -297,7 +293,7 @@ class WritablePipe extends StreamResource implements WritableStream
             }
 
             if (!$writeQueue->isEmpty()) {
-                list( , , $timeout) = $writeQueue->top();
+                list( , , $timeout) = $writeQueue->bottom();
                 $await->listen($timeout);
             }
         });
