@@ -32,9 +32,14 @@ class WritablePipe extends StreamResource implements WritableStream
     private $writable = true;
 
     /**
-     * @var \Icicle\Loop\Watcher\Io
+     * @var \Icicle\Loop\Watcher\Io|null
      */
     private $await;
+
+    /**
+     * @var \Closure
+     */
+    private $onCancelled;
 
     /**
      * @param resource $resource Stream resource.
@@ -48,6 +53,10 @@ class WritablePipe extends StreamResource implements WritableStream
         stream_set_chunk_size($resource, self::CHUNK_SIZE);
 
         $this->writeQueue = new \SplQueue();
+
+        $this->onCancelled = function (Throwable $exception) {
+            $this->free($exception);
+        };
     }
 
     /**
@@ -147,15 +156,15 @@ class WritablePipe extends StreamResource implements WritableStream
                 $data = substr($data, $written);
             }
 
-            $delayed = new Delayed();
-            $this->writeQueue->push([$data, $written, $timeout, $delayed]);
-
             if (null === $this->await) {
                 $this->await = $this->createAwait($this->getResource(), $this->writeQueue);
                 $this->await->listen($timeout);
             } elseif (!$this->await->isPending()) {
                 $this->await->listen($timeout);
             }
+
+            $delayed = new Delayed($this->onCancelled);
+            $this->writeQueue->push([$data, $written, $timeout, $delayed]);
 
             return yield $delayed;
         } catch (Throwable $exception) {
@@ -197,15 +206,15 @@ class WritablePipe extends StreamResource implements WritableStream
             throw new UnwritableException('The stream is no longer writable.');
         }
 
-        $delayed = new Delayed();
-        $this->writeQueue->push(['', 0, $timeout, $delayed]);
-
         if (null === $this->await) {
             $this->await = $this->createAwait($this->getResource(), $this->writeQueue);
             $this->await->listen($timeout);
         } elseif (!$this->await->isPending()) {
             $this->await->listen($timeout);
         }
+
+        $delayed = new Delayed($this->onCancelled);
+        $this->writeQueue->push(['', 0, $timeout, $delayed]);
 
         try {
             return yield $delayed;

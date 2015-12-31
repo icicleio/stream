@@ -15,7 +15,6 @@ use Icicle\Loop;
 use Icicle\Loop\Watcher\Io;
 use Icicle\Stream\Exception\{FailureException, UnreadableException};
 use Icicle\Stream\{ReadableStream, StreamResource};
-use Throwable;
 
 class ReadablePipe extends StreamResource implements ReadableStream
 {
@@ -37,6 +36,11 @@ class ReadablePipe extends StreamResource implements ReadableStream
     private $poll;
 
     /**
+     * @var \Closure
+     */
+    private $onCancelled;
+
+    /**
      * @var string
      */
     private $buffer = '';
@@ -54,6 +58,11 @@ class ReadablePipe extends StreamResource implements ReadableStream
 
         $this->queue = new \SplQueue();
         $this->poll = $this->createPoll($resource, $this->queue);
+
+        $this->onCancelled = function () {
+            $this->poll->cancel();
+            $this->queue->shift();
+        };
     }
 
     /**
@@ -123,18 +132,10 @@ class ReadablePipe extends StreamResource implements ReadableStream
                 break; // Resolve with empty string on EOF.
             }
 
-            $this->queue->push($delayed = new Delayed());
+            $this->queue->push($delayed = new Delayed($this->onCancelled));
             $this->poll->listen($timeout);
 
-            try {
-                yield $delayed;
-            } catch (Throwable $exception) {
-                if ($this->poll->isPending()) {
-                    $this->poll->cancel();
-                    $this->queue->shift();
-                }
-                throw $exception;
-            }
+            yield $delayed;
         }
 
         return $data;
@@ -175,18 +176,10 @@ class ReadablePipe extends StreamResource implements ReadableStream
             throw new FailureException('Stream buffer is not empty. Perform another read before polling.');
         }
 
-        $this->queue->push($delayed = new Delayed());
+        $this->queue->push($delayed = new Delayed($this->onCancelled));
         $this->poll->listen($timeout);
 
-        try {
-            yield $delayed;
-        } catch (Throwable $exception) {
-            if ($this->poll->isPending()) {
-                $this->poll->cancel();
-                $this->queue->shift();
-            }
-            throw $exception;
-        }
+        yield $delayed;
 
         if ('' !== $this->buffer) {
             throw new FailureException('Data unshifted to stream buffer while polling.');
