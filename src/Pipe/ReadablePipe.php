@@ -73,7 +73,7 @@ class ReadablePipe extends StreamResource implements ReadableStream
     public function __destruct()
     {
         parent::__destruct();
-        $this->free();
+        $this->poll->free();
     }
 
     /**

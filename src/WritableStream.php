@@ -34,7 +34,7 @@ interface WritableStream extends Stream
     /**
      * @coroutine
      *
-     * Queues the data to be sent on the stream and closes the stream once the data has been written.
+     * Queues the data to be sent on the stream and marks the stream as unwritable.
      *
      * @param string $data
      * @param float|int $timeout Number of seconds until the returned promise is rejected with a TimeoutException
