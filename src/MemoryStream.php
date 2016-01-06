@@ -31,7 +31,7 @@ class MemoryStream implements DuplexStream
     /**
      * @var bool
      */
-    private $open = true;
+    private $readable = true;
     
     /**
      * @var bool
@@ -62,6 +62,11 @@ class MemoryStream implements DuplexStream
      * @var \SplQueue|null
      */
     private $queue;
+
+    /**
+     * @var \Closure|null
+     */
+    private $onCancelled;
     
     /**
      * @param int $hwm High water mark. If the internal buffer has more than $hwm bytes, writes to the stream will
@@ -86,7 +91,7 @@ class MemoryStream implements DuplexStream
      */
     public function isOpen()
     {
-        return $this->open;
+        return $this->readable || $this->writable;
     }
     
     /**
@@ -104,7 +109,7 @@ class MemoryStream implements DuplexStream
      */
     protected function free(Exception $exception = null)
     {
-        $this->open = false;
+        $this->readable = false;
         $this->writable = false;
 
         if (null !== $this->delayed && $this->delayed->isPending()) {
@@ -115,7 +120,7 @@ class MemoryStream implements DuplexStream
             while (!$this->queue->isEmpty()) {
                 /** @var \Icicle\Awaitable\Delayed $delayed */
                 $delayed = $this->queue->shift();
-                $delayed->cancel(
+                $delayed->reject(
                     $exception = $exception ?: new ClosedException('The stream was unexpectedly closed.')
                 );
             }
@@ -155,7 +160,7 @@ class MemoryStream implements DuplexStream
             }
 
             if (!$this->writable && $this->buffer->isEmpty()) {
-                $this->close();
+                $this->free();
             }
 
             yield $data;
@@ -218,7 +223,7 @@ class MemoryStream implements DuplexStream
      */
     public function isReadable()
     {
-        return $this->isOpen();
+        return $this->readable;
     }
 
     /**
@@ -248,7 +253,7 @@ class MemoryStream implements DuplexStream
      *
      * @resolve int Number of bytes written to the stream.
      *
-     * @throws \Icicle\Stream\Exception\UnwritableException If the stream is not longer writable.
+     * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      */
     protected function send($data, $timeout = 0, $end = false)
     {
@@ -264,28 +269,23 @@ class MemoryStream implements DuplexStream
 
         if ($end) {
             if ($this->buffer->isEmpty()) {
-                $this->close();
+                $this->free();
             } else {
                 $this->writable = false;
             }
         }
 
         if (0 !== $this->hwm && $this->buffer->getLength() > $this->hwm) {
-            $awaitable = new Delayed();
+            $awaitable = new Delayed($this->onCancelled = $this->onCancelled ?: function () {
+                $this->free();
+            });
             $this->queue->push($awaitable);
 
             if (0 !== $timeout) {
                 $awaitable = $awaitable->timeout($timeout);
             }
 
-            try {
-                yield $awaitable;
-            } catch (Exception $exception) {
-                if ($this->isOpen()) {
-                    $this->free($exception);
-                }
-                throw $exception;
-            }
+            yield $awaitable;
         }
 
         yield strlen($data);
