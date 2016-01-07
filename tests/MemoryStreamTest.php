@@ -927,7 +927,6 @@ class MemoryStreamTest extends TestCase
         Loop\run();
 
         $this->assertFalse($writable->isWritable());
-        $this->assertFalse($writable->isOpen());
     }
 
     /**

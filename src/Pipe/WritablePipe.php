@@ -65,7 +65,9 @@ class WritablePipe extends StreamResource implements WritableStream
     public function __destruct()
     {
         parent::__destruct();
-        $this->free();
+        if (null !== $this->await) {
+            $this->await->free();
+        }
     }
 
     /**
@@ -93,7 +95,7 @@ class WritablePipe extends StreamResource implements WritableStream
         while (!$this->writeQueue->isEmpty()) {
             /** @var \Icicle\Awaitable\Delayed $delayed */
             list( , , , $delayed) = $this->writeQueue->shift();
-            $delayed->cancel(
+            $delayed->reject(
                 $exception = $exception ?: new ClosedException('The stream was unexpectedly closed.')
             );
         }
@@ -132,6 +134,8 @@ class WritablePipe extends StreamResource implements WritableStream
             $this->writable = false;
         }
 
+        $resource = $this->getResource();
+
         try {
             if ($this->writeQueue->isEmpty()) {
                 if (0 === $length) {
@@ -139,7 +143,7 @@ class WritablePipe extends StreamResource implements WritableStream
                 }
 
                 // Error reporting suppressed since fwrite() emits E_WARNING if the pipe is broken or the buffer is full.
-                $written = @fwrite($this->getResource(), $data, self::CHUNK_SIZE);
+                $written = @fwrite($resource, $data, self::CHUNK_SIZE);
 
                 if (false === $written) {
                     $message = 'Failed to write to stream.';
@@ -157,7 +161,7 @@ class WritablePipe extends StreamResource implements WritableStream
             }
 
             if (null === $this->await) {
-                $this->await = $this->createAwait($this->getResource(), $this->writeQueue);
+                $this->await = $this->createAwait($resource, $this->writeQueue);
                 $this->await->listen($timeout);
             } elseif (!$this->await->isPending()) {
                 $this->await->listen($timeout);
@@ -171,8 +175,8 @@ class WritablePipe extends StreamResource implements WritableStream
             $this->free($exception);
             throw $exception;
         } finally {
-            if ($end && $this->isOpen()) {
-                $this->close();
+            if ($end && is_resource($resource)) {
+                stream_socket_shutdown($resource, STREAM_SHUT_WR);
             }
         }
     }

@@ -170,8 +170,6 @@ class WritablePipeTest extends PipeTest
         $promise->done($callback);
 
         Loop\run();
-
-        $this->assertFalse($writable->isOpen());
     }
 
     /**
