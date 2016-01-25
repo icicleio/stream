@@ -200,6 +200,12 @@ class ReadablePipe extends StreamResource implements ReadableStream
      */
     public function unshift($data)
     {
+        $data = (string) $data;
+
+        if (!strlen($data)) {
+            return;
+        }
+
         $this->buffer = $data . $this->buffer;
 
         if (!$this->queue->isEmpty()) {
@@ -249,7 +255,8 @@ class ReadablePipe extends StreamResource implements ReadableStream
         $remaining = $length;
 
         if (('' === $this->buffer || 0 < ($remaining -= strlen($this->buffer))) && is_resource($resource)) {
-            $this->buffer .= fread($resource, $remaining);
+            // Error reporting suppressed since fread() produces a warning if the stream unexpectedly closes.
+            $this->buffer .= @fread($resource, $remaining);
         }
 
         if (null === $byte || false === ($position = strpos($this->buffer, $byte))) {
