@@ -170,10 +170,12 @@ class MemoryStream implements DuplexStream
         }
 
         try {
-            return yield $awaitable;
+            $data = yield $awaitable;
         } finally {
             $this->delayed = null;
         }
+
+        return $data;
     }
 
     /**

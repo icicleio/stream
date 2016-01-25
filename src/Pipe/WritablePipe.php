@@ -121,7 +121,7 @@ class WritablePipe extends StreamResource implements WritableStream
      * @throws \Icicle\Stream\Exception\UnwritableException If the stream is no longer writable.
      * @throws \Icicle\Stream\Exception\FailureException If writing to the stream fails.
      */
-    private function send(string $data, float $timeout = 0, bool $end = false): \Generator
+    private function send(string $data, float $timeout = 0, bool $end = false)
     {
         if (!$this->isWritable()) {
             throw new UnwritableException('The stream is no longer writable.');

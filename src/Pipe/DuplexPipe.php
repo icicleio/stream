@@ -127,10 +127,12 @@ class DuplexPipe implements DuplexStream, Resource
         }
 
         try {
-            return yield from $this->writable->end($data, $timeout);
+            $written = yield from $this->writable->end($data, $timeout);
         } finally {
             $this->readable->close();
         }
+
+        return $written;
     }
 
     /**
