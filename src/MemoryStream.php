@@ -162,20 +162,13 @@ class MemoryStream implements DuplexStream
             return $data;
         }
 
-        $awaitable = new Delayed();
-        $this->delayed = $awaitable;
+        $awaitable = $this->delayed = new Delayed();
 
         if ($timeout) {
             $awaitable = $this->delayed->timeout($timeout);
         }
 
-        try {
-            $data = yield $awaitable;
-        } finally {
-            $this->delayed = null;
-        }
-
-        return $data;
+        return yield $awaitable;
     }
 
     /**
@@ -208,10 +201,15 @@ class MemoryStream implements DuplexStream
      */
     public function unshift(string $data)
     {
+        if (!strlen($data)) {
+            return;
+        }
+
         $this->buffer->unshift($data);
 
         if (null !== $this->delayed && !$this->buffer->isEmpty()) {
             $this->delayed->resolve($this->remove());
+            $this->delayed = null;
         }
     }
 
@@ -262,6 +260,7 @@ class MemoryStream implements DuplexStream
 
         if (null !== $this->delayed && !$this->buffer->isEmpty()) {
             $this->delayed->resolve($this->remove());
+            $this->delayed = null;
         }
 
         if ($end) {
