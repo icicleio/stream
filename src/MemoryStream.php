@@ -168,7 +168,13 @@ class MemoryStream implements DuplexStream
             $awaitable = $this->delayed->timeout($timeout);
         }
 
-        return yield $awaitable;
+        try {
+            $data = yield $awaitable;
+        } finally {
+            $this->delayed = null;
+        }
+
+        return $data;
     }
 
     /**
