@@ -260,7 +260,7 @@ class MemoryStream implements DuplexStream
 
         $this->buffer->push($data);
 
-        if (null !== $this->delayed && !$this->buffer->isEmpty()) {
+        if (null !== $this->delayed && $this->delayed->isPending() && !$this->buffer->isEmpty()) {
             $this->delayed->resolve($this->remove());
         }
 
