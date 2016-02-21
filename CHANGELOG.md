@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.5] - 2015-02-21
+### Changed
+- Calling `Icicle\Stream\WritablePipe::end()` now calls `stream_socket_shutdown()` on the stream resource, shutting down the write side of the stream socket.
+
+### Fixed
+- Fixed issue where `Icicle\Stream\MemoryStream` would sometimes discard data written to it before being read.
+
 ## [0.5.4] - 2015-12-29
 ### Added
 - `Icicle\Stream\Pipe\ReadablePipe`, `Icicle\Stream\Pipe\WritablePipe`, and `Icicle\Stream\Pipe\DuplexPipe` will automatically free resources in the event loop associated with the stream and call `fclose()` on the stream resource when the object is destructed. This means `close()` does not need to be called on the stream to avoid memory leaks in the loop or close the stream resource. The constructors of these classes have an additional boolean parameter `$autoClose` that defaults to `true`, but can be set to `false` to avoid automatically calling `fclose()` on the stream resource.
@@ -74,6 +81,7 @@
 - Initial release after split from the main [Icicle repository](https://github.com/icicleio/icicle).
 
 
+[0.5.5]: https://github.com/icicleio/socket/releases/tag/v0.5.5
 [0.5.4]: https://github.com/icicleio/socket/releases/tag/v0.5.4
 [0.5.3]: https://github.com/icicleio/socket/releases/tag/v0.5.3
 [0.5.2]: https://github.com/icicleio/socket/releases/tag/v0.5.2
