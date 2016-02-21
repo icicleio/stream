@@ -219,8 +219,9 @@ class MemoryStream implements DuplexStream
         $this->buffer->unshift($data);
 
         if (null !== $this->delayed && !$this->buffer->isEmpty()) {
-            $this->delayed->resolve($this->remove());
+            $delayed = $this->delayed;
             $this->delayed = null;
+            $delayed->resolve($this->remove());
         }
     }
 
@@ -270,8 +271,9 @@ class MemoryStream implements DuplexStream
         $this->buffer->push($data);
 
         if (null !== $this->delayed && !$this->buffer->isEmpty()) {
-            $this->delayed->resolve($this->remove());
+            $delayed = $this->delayed;
             $this->delayed = null;
+            $delayed->resolve($this->remove());
         }
 
         if ($end) {
